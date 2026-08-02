@@ -1,11 +1,9 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
-	"version": "1.0.0",
-	"minAppVersion": "1.0.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"id": "baukasten-press",
+	"name": "Baukasten Press",
+	"version": "0.1.0",
+	"minAppVersion": "0.15.0",
+	"description": "Creates controlled public copies from a Baukasten_Nexus vault.",
+	"author": "Baukasten Press contributors",
 	"isDesktopOnly": false
 }

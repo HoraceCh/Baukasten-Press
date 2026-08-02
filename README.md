@@ -1,92 +1,114 @@
-# Obsidian Sample Plugin
+# Baukasten Press
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Baukasten Press (`baukasten-press`) is an Obsidian plugin for creating and publishing controlled public copies of notes from the `Baukasten_Nexus` vault.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+This repository is deliberately separate from the vault. The vault's `.obsidian/plugins` directory is only a later manual-test target for compiled release artifacts; it is not the development workspace.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+## Current status
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and outputs a Notice on click.
-- Registers a global interval which logs 'setInterval' to the console.
+The current foundation provides:
 
-## First time developing plugins?
+- a minimal loadable Obsidian plugin entry point;
+- an Obsidian command that adds the active Markdown note to a persistent pending queue;
+- the official sample plugin's TypeScript, esbuild, and ESLint approach;
+- initial domain types for the agreed publication workflow;
+- a project-local Horace Linear-style UI baseline adapted to Obsidian themes;
+- no publishing integration, model call, custom queue view, or source-note write.
 
-Quick starting guide for new plugin devs:
+## Add the current note to the queue
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `src/main.ts` to `main.js`.
-- Make changes to `src/main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+With a Markdown note active, run **Baukasten Press: 加入待处理队列** from Obsidian's command palette. The command records only the note's vault-relative `sourcePath` and an ISO `queuedAt` timestamp. Adding the same path again leaves the queue unchanged and shows a native Obsidian notice.
 
-## Releasing new releases
-
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
-
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
-
-## Adding your plugin to the community plugin list
-
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
-
-## How to use
-
-- Clone this repo.
-- Make sure your NodeJS is at least v18 (`node --version`).
-- `npm i` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
-
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint
-
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+The schema-v1 queue is stored through Obsidian's plugin data API in Baukasten Press's own `data.json`:
 
 ```json
 {
-	"fundingUrl": "https://buymeacoffee.com"
+  "schemaVersion": 1,
+  "queue": [
+    {
+      "sourcePath": "folder/note.md",
+      "queuedAt": "2026-08-02T00:00:00.000Z"
+    }
+  ]
 }
 ```
 
-If you have multiple URLs, you can also do:
+The command does not read or modify the note body, frontmatter, or any other vault file. A queue view, source snapshots, public-copy generation, Agent execution, review, and publishing remain outside this feature.
 
-```json
-{
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://buymeacoffee.com",
-		"GitHub Sponsor": "https://github.com/sponsors",
-		"Patreon": "https://www.patreon.com/"
-	}
-}
+## Safety boundaries
+
+- Source notes are read-only inputs.
+- Pending-queue metadata is stored only in the plugin-owned `data.json` through Obsidian's plugin data API.
+- A public copy and processing runtime data may only be written under an explicitly configured publication scope.
+- No publication scope is selected by default.
+- Agent profiles, subtasks, and repair loops belong to Baukasten Press and must remain isolated from general-purpose vault agents.
+- This project must not modify `Baukasten_Nexus`, its `.obsidian` configuration, `98 Publish`, or user notes during development.
+
+## Planned workflow boundaries
+
+The UI and orchestration will be added incrementally under these boundaries:
+
+1. Add the active note to the publication queue.
+2. Process queued notes into public copies and run an initial check.
+3. Attempt at most two repairs, then at most one full regeneration.
+4. Route remaining failures to manual intervention.
+5. Review the read-only source beside an editable public copy with traceable differences.
+6. Confirm publication and retain a published record.
+7. Configure publication rules and Baukasten Press-specific agent profiles.
+
+Source layout:
+
+- `src/main.ts`: Obsidian lifecycle entry point and future feature registration.
+- `src/domain/publication.ts`: workflow vocabulary and safety-relevant data shapes.
+- `src/application/publication-queue.ts`: schema-v1 queue validation and idempotent enqueue behavior.
+- `docs/design/UI_DESIGN.md`: canonical UI, theme, accessibility, and workflow-state contract.
+- `.agents/skills/baukasten-press-ui/SKILL.md`: repeatable workflow for implementing and reviewing plugin UI.
+- `styles.css`: Obsidian-native, `.baukasten-press`-scoped design tokens and baseline component styles.
+- Future `src/ui/`: Obsidian views, commands, and settings UI.
+- Future additions under `src/application/`: later workflow coordination beyond the pending queue.
+- Future `src/adapters/`: storage, model-provider, OpenCode, and publishing integrations selected later.
+
+## UI baseline
+
+All Baukasten Press interfaces use the canonical rules in `docs/design/UI_DESIGN.md`. The direction adapts Horace's Linear-style precision to Obsidian: compact spacing, hairline structure, restrained surfaces, explicit publication states, and minimal motion.
+
+Colors, typography, focus, and theme contrast come from Obsidian semantic variables. Plugin CSS must remain under `.baukasten-press`; it must not override Obsidian core styles or define separate light and dark palettes. This makes the baseline compatible with Obsidian light, dark, and community themes. UI work must also preserve keyboard access, visible focus, reduced motion, forced colors, read-only source ownership, traceable differences, and explicit publication confirmation.
+
+## Development
+
+Prerequisites:
+
+- Node.js 22 or newer is recommended. The scaffold was created with Node.js 24.14.1 and npm 11.14.1.
+- npm is the package manager used by this project.
+
+Commands:
+
+```sh
+npm install
+npm run dev
+npm run typecheck
+npm run lint
+npm run build
 ```
 
-## API Documentation
+`npm run dev` watches `src/main.ts` and writes `main.js`. `npm run build` performs a type check and creates a minified production bundle. The generated `main.js` is intentionally ignored by Git.
 
-See https://docs.obsidian.md
+On the scaffold machine, the system npm cache was not writable, so the initial install used `npm install --cache .npm-cache`. That project-local cache is ignored by Git and can be used again if the same permission issue recurs.
+
+For a later manual test, copy `manifest.json`, the generated `main.js`, and `styles.css` into a test vault at `.obsidian/plugins/baukasten-press/`. Do not use the production `Baukasten_Nexus` vault as the development vault.
+
+## Environment and unresolved interfaces
+
+The following choices are intentionally deferred until their contracts are agreed:
+
+- the publication-scope layout and persistence format beyond the plugin-owned pending queue;
+- how source snapshots and editable public-copy revisions are stored for traceable diffs;
+- the website publishing target and its confirmation/rollback contract;
+- credential storage and transport for OpenAI, Anthropic, DeepSeek, and compatible endpoints;
+- the local, non-destructive OpenCode invocation contract;
+- model-profile schema, task prompts, cancellation, retry, and audit records;
+- whether future local execution requires marking the plugin desktop-only;
+- the minimum supported Obsidian version for the first release.
+- release author attribution and repository license.
+
+Until those decisions are made, the project contains no real provider or publishing implementation.
