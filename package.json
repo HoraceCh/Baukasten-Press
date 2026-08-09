@@ -6,6 +6,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
+		"validate:agents": "node scripts/validate-agent-infrastructure.mjs",
 		"typecheck": "tsc --noEmit --skipLibCheck",
 		"lint": "eslint .",
 		"build": "npm run typecheck && node esbuild.config.mjs production",

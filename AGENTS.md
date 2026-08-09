@@ -8,6 +8,16 @@
 - Do not modify `Baukasten_Nexus`, its `.obsidian` configuration, `98 Publish`, or user notes unless a later task explicitly authorizes a precise write scope.
 - Do not implement a publishing destination, provider call, credential store, or local Agent execution contract before its interface is approved.
 
+## Codex ownership and routing
+
+- The five registered project owners are `press_system_architect`, `publication_contract_guardian`, `agent_runtime_security_engineer`, `press_app_implementer`, and `qa_release_reviewer`.
+- Assign exactly one primary owner per task and follow [docs/AGENT_ROUTING.md](docs/AGENT_ROUTING.md).
+- Read-only specialists define their contracts before `press_app_implementer` performs dependent implementation. Final QA remains independent and read-only.
+- Write-capable work is serial. Parallelism is limited to independent read-only investigation, and direct children must not recursively fan out.
+- Agent registration grants no provider, credential, publication, repository, external-system, or vault authority.
+- Third-party Agency Agents are advisory provenance only. Never globally install or dynamically import upstream agents into this project.
+- Current project-local contracts override upstream content.
+
 ## Canonical UI direction
 
 - Every Baukasten Press interface must follow [docs/design/UI_DESIGN.md](docs/design/UI_DESIGN.md). Read it before planning, implementing, or reviewing UI work.
