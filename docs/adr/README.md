@@ -10,3 +10,4 @@ An Accepted ADR is not substantively rewritten. Replace it with a new ADR that l
 | [0002](0002-state-machine-authority.md) | Accepted | Deterministic workflow state authority |
 | [0003](0003-successful-record-immutability.md) | Accepted | Immutable successful publication records |
 | [0004](0004-publish-adapter-isolation.md) | Accepted | Versioned publish adapter isolation |
+| [0005](0005-repository-layer-boundaries.md) | Accepted | Repository layer boundaries |
