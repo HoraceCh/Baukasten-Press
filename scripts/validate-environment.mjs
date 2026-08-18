@@ -1,0 +1,118 @@
+import { execFile } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+
+const executeFile = promisify(execFile);
+const scriptPath = fileURLToPath(import.meta.url);
+export const repositoryRoot = path.resolve(path.dirname(scriptPath), '..');
+const CONTRACT_PATH = path.join(repositoryRoot, 'config', 'environment-contract.json');
+const EXAMPLE_PATH = path.join(repositoryRoot, 'config', 'environment.example.json');
+const SAFE_CODES = new Set(['CONFIG_READ_FAILED', 'CONFIG_INVALID', 'CONFIG_SCHEMA_INVALID', 'ENVIRONMENT_VARIABLE_FORBIDDEN', 'REPOSITORY_ROOT_INVALID', 'REPOSITORY_CWD_INVALID', 'REPOSITORY_TOPLEVEL_INVALID', 'REPOSITORY_ORIGIN_INVALID', 'NODE_VERSION_INVALID', 'NPM_VERSION_INVALID', 'LOCKFILE_INVALID', 'PACKAGE_LOCK_MISMATCH', 'LOCKED_TOOL_INVALID', 'IGNORE_POLICY_INVALID', 'PATH_POLICY_INVALID', 'COMMAND_FAILED']);
+
+const exactKeys = (value, expected) => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === expected.length && expected.every((key) => Object.hasOwn(value, key));
+const emptyObject = (value) => exactKeys(value, []);
+const sameStrings = (actual, expected) => Array.isArray(actual) && actual.length === expected.length && actual.every((value, index) => value === expected[index]);
+const isStringList = (value) => Array.isArray(value) && value.length > 0 && value.every((entry) => typeof entry === 'string' && entry.length > 0) && new Set(value).size === value.length;
+const normalizePath = (value) => value.replaceAll('/', '\\').replace(/\\+$/, '').toLowerCase();
+const fail = (code) => SAFE_CODES.has(code) ? code : 'CONFIG_INVALID';
+
+/** JSON parser that rejects duplicate and escaped object member names. */
+export function parseStrictJson(text) {
+	let cursor = 0;
+	const skip = () => { while (/[\t\n\r ]/.test(text[cursor] ?? '')) cursor += 1; };
+	const invalid = () => { throw new Error('CONFIG_INVALID'); };
+	const string = (key = false) => {
+		if (text[cursor] !== '"') invalid(); const start = cursor++; let escaped = false;
+		while (cursor < text.length) { const character = text[cursor++]; if (character === '"' && !escaped) { const raw = text.slice(start, cursor); if (key && raw.includes('\\')) invalid(); try { return JSON.parse(raw); } catch { invalid(); } } escaped = character === '\\' && !escaped; }
+		invalid();
+	};
+	const value = () => { skip(); if (text[cursor] === '{') { cursor += 1; skip(); const result = Object.create(null); const seen = new Set(); if (text[cursor] === '}') { cursor += 1; return result; } while (true) { skip(); const name = string(true); if (seen.has(name)) invalid(); seen.add(name); skip(); if (text[cursor++] !== ':') invalid(); result[name] = value(); skip(); if (text[cursor] === '}') { cursor += 1; return result; } if (text[cursor++] !== ',') invalid(); } } if (text[cursor] === '[') { cursor += 1; skip(); const result = []; if (text[cursor] === ']') { cursor += 1; return result; } while (true) { result.push(value()); skip(); if (text[cursor] === ']') { cursor += 1; return result; } if (text[cursor++] !== ',') invalid(); } } if (text[cursor] === '"') return string(); const literal = text.slice(cursor).match(/^(true|false|null|-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)/)?.[0]; if (!literal) invalid(); cursor += literal.length; return JSON.parse(literal); };
+	const result = value(); skip(); if (cursor !== text.length) invalid(); return result;
+}
+
+export function validateAuthority(authority) {
+	if (!exactKeys(authority, ['contractVersion', 'configSchema', 'requiredConfigKeys', 'environment']) || typeof authority.contractVersion !== 'string') return fail('CONFIG_SCHEMA_INVALID');
+	if (!exactKeys(authority.configSchema, ['required', 'optional', 'defaults', 'environmentVariables', 'secrets']) || !sameStrings(authority.configSchema.required, ['contractVersion', 'environment']) || !sameStrings(authority.configSchema.optional, []) || !emptyObject(authority.configSchema.defaults) || !sameStrings(authority.configSchema.environmentVariables, []) || !sameStrings(authority.configSchema.secrets, [])) return fail('CONFIG_SCHEMA_INVALID');
+	const required = authority.requiredConfigKeys;
+	if (!exactKeys(required, ['environment', 'repository', 'toolchain', 'paths', 'profile', 'capabilities']) || Object.values(required).some((keys) => !isStringList(keys))) return fail('CONFIG_SCHEMA_INVALID');
+	const environment = authority.environment;
+	if (!exactKeys(environment, required.environment) || !emptyObject(environment.optional) || !emptyObject(environment.default) || !emptyObject(environment.envVariables) || !emptyObject(environment.secrets)) return fail('CONFIG_SCHEMA_INVALID');
+	if (!exactKeys(environment.repository, required.repository) || !Object.values(environment.repository).every((value) => typeof value === 'string' && value.length > 0)) return fail('CONFIG_SCHEMA_INVALID');
+	const toolchain = environment.toolchain;
+	if (!exactKeys(toolchain, required.toolchain) || typeof toolchain.node !== 'string' || typeof toolchain.npm !== 'string' || typeof toolchain.packageManager !== 'string' || typeof toolchain.lockfile !== 'string' || !Number.isInteger(toolchain.lockfileVersion) || !isStringList(toolchain.requiredLockedPackages)) return fail('CONFIG_SCHEMA_INVALID');
+	if (!exactKeys(environment.paths, required.paths) || !isStringList(environment.paths.tracked) || !isStringList(environment.paths.ignoredRuntime)) return fail('CONFIG_SCHEMA_INVALID');
+	const profiles = environment.profiles;
+	if (!isStringList(environment.profileNames) || !profiles || typeof profiles !== 'object' || Array.isArray(profiles) || !sameStrings(Object.keys(profiles).sort(), [...environment.profileNames].sort())) return fail('CONFIG_SCHEMA_INVALID');
+	for (const profile of Object.values(profiles)) {
+		if (!exactKeys(profile, required.profile) || typeof profile.responsibility !== 'string' || profile.responsibility.length === 0 || !exactKeys(profile.capabilities, required.capabilities) || Object.values(profile.capabilities).some((capability) => capability !== false)) return fail('CONFIG_SCHEMA_INVALID');
+	}
+	return null;
+}
+
+export function validateExample(example, authority) {
+	return exactKeys(example, authority.configSchema.required) && example.contractVersion === authority.contractVersion && typeof example.environment === 'string' && Object.hasOwn(authority.environment.profiles, example.environment) ? null : fail('CONFIG_SCHEMA_INVALID');
+}
+
+async function runExactTool(command, argumentsList, root) {
+	if (command === 'npm' && process.platform === 'win32') {
+		const nodeDirectory = path.dirname(process.execPath);
+		const prefixScript = path.join(nodeDirectory, 'node_modules', 'npm', 'bin', 'npm-prefix.js');
+		const prefix = (await executeFile(process.execPath, [prefixScript], { cwd: root })).stdout.trim();
+		return (await executeFile(process.execPath, [path.join(prefix, 'node_modules', 'npm', 'bin', 'npm-cli.js'), ...argumentsList], { cwd: root })).stdout.trim();
+	}
+	return (await executeFile(command, argumentsList, { cwd: root })).stdout.trim();
+}
+
+function validOrigin(origin, slug) {
+	const normalized = origin.trim().replace(/\.git$/, '');
+	return normalized === `https://github.com/${slug}` || normalized === `git@github.com:${slug}`;
+}
+
+function sameDependencySection(left, right, name) {
+	const a = left[name] ?? {}; const b = right[name] ?? {};
+	return exactKeys(a, Object.keys(b)) && Object.keys(a).every((key) => a[key] === b[key]);
+}
+
+export async function validateEnvironment({ authorityText, configText, root = repositoryRoot, currentDirectory = process.cwd(), environment = process.env, nodeVersion = process.versions.node, readText = (file) => readFile(file, 'utf8'), run = (command, argumentsList) => runExactTool(command, argumentsList, root) } = {}) {
+	if (Object.keys(environment).some((name) => /^baukasten_press_/i.test(name))) return fail('ENVIRONMENT_VARIABLE_FORBIDDEN');
+	let authority; let example;
+	try { authority = parseStrictJson(authorityText); example = parseStrictJson(configText); } catch { return fail('CONFIG_INVALID'); }
+	const authorityResult = validateAuthority(authority); if (authorityResult) return authorityResult;
+	const exampleResult = validateExample(example, authority); if (exampleResult) return exampleResult;
+	const { repository, toolchain, paths } = authority.environment;
+	if (normalizePath(root) !== normalizePath(repository.root) || normalizePath(repositoryRoot) !== normalizePath(repository.root)) return fail('REPOSITORY_ROOT_INVALID');
+	if (normalizePath(currentDirectory) !== normalizePath(repository.root)) return fail('REPOSITORY_CWD_INVALID');
+	if (nodeVersion !== toolchain.node) return fail('NODE_VERSION_INVALID');
+	let origin; let topLevel; let npmVersion;
+	try { [origin, topLevel, npmVersion] = await Promise.all([run('git', ['config', '--get', 'remote.origin.url']), run('git', ['rev-parse', '--show-toplevel']), run('npm', ['--version'])]); } catch { return fail('COMMAND_FAILED'); }
+	if (normalizePath(topLevel) !== normalizePath(repository.root)) return fail('REPOSITORY_TOPLEVEL_INVALID');
+	if (!validOrigin(origin, repository.slug)) return fail('REPOSITORY_ORIGIN_INVALID');
+	if (npmVersion !== toolchain.npm) return fail('NPM_VERSION_INVALID');
+	let packageText; let lockText; let ignoreText;
+	try { [packageText, lockText, ignoreText] = await Promise.all([readText(path.join(root, 'package.json')), readText(path.join(root, toolchain.lockfile)), readText(path.join(root, '.gitignore'))]); } catch { return fail('LOCKFILE_INVALID'); }
+	let manifest; let lock;
+	try { manifest = parseStrictJson(packageText); lock = parseStrictJson(lockText); } catch { return fail('LOCKFILE_INVALID'); }
+	if (lock.lockfileVersion !== toolchain.lockfileVersion || !lock.packages || typeof lock.packages !== 'object') return fail('LOCKFILE_INVALID');
+	if (!lock.packages[''] || !sameDependencySection(manifest, lock.packages[''], 'dependencies') || !sameDependencySection(manifest, lock.packages[''], 'devDependencies')) return fail('PACKAGE_LOCK_MISMATCH');
+	for (const name of toolchain.requiredLockedPackages) if (!lock.packages[`node_modules/${name}`] || typeof lock.packages[`node_modules/${name}`].version !== 'string' || !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(lock.packages[`node_modules/${name}`].version)) return fail('LOCKED_TOOL_INVALID');
+	const ignored = new Set(ignoreText.split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith('#')));
+	if (paths.ignoredRuntime.some((entry) => !ignored.has(entry))) return fail('IGNORE_POLICY_INVALID');
+	let tracked;
+	try { tracked = await run('git', ['ls-files']); } catch { return fail('COMMAND_FAILED'); }
+	const approved = paths.tracked;
+	if (tracked.split(/\r?\n/).filter(Boolean).some((entry) => !approved.some((allowed) => allowed.endsWith('/') ? entry.startsWith(allowed) : entry === allowed))) return fail('PATH_POLICY_INVALID');
+	return null;
+}
+
+export async function main(argumentsList = process.argv.slice(2)) {
+	if (argumentsList.length !== 2 || argumentsList[0] !== '--config' || argumentsList[1] !== 'config/environment.example.json') { process.stderr.write('Environment validation failed: CONFIG_INVALID\n'); return 1; }
+	let authorityText; let configText;
+	try { [authorityText, configText] = await Promise.all([readFile(CONTRACT_PATH, 'utf8'), readFile(EXAMPLE_PATH, 'utf8')]); } catch { process.stderr.write('Environment validation failed: CONFIG_READ_FAILED\n'); return 1; }
+	const result = await validateEnvironment({ authorityText, configText });
+	if (result) { process.stderr.write(`Environment validation failed: ${result}\n`); return 1; }
+	process.stdout.write('Environment contract valid.\n'); return 0;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === scriptPath) process.exitCode = await main();

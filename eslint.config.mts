@@ -20,7 +20,7 @@ export default defineConfig(
 			},
 			parserOptions: {
 				projectService: {
-					allowDefaultProject: ['eslint.config.mts', 'manifest.json'],
+					allowDefaultProject: ['eslint.config.mts', 'manifest.json', 'scripts/validate-environment.mjs', 'tests/environment-contract.test.mjs'],
 				},
 				tsconfigRootDir: import.meta.dirname,
 				extraFileExtensions: ['.json'],
@@ -28,4 +28,13 @@ export default defineConfig(
 		},
 	},
 	...obsidianmd.configs.recommended,
+	{
+		files: ['scripts/validate-environment.mjs', 'tests/environment-contract.test.mjs'],
+		languageOptions: {
+			globals: globals.node,
+		},
+		rules: {
+			'obsidianmd/no-nodejs-modules': 'off',
+		},
+	},
 );
