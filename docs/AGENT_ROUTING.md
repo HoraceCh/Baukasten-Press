@@ -15,6 +15,7 @@ Agent registration is task routing, not product authority. It does not create a 
 | Agent profile, provider, or security contract | `agent_runtime_security_engineer` → `press_app_implementer` → `qa_release_reviewer` |
 | Cross-boundary architecture | `press_system_architect` → relevant specialist(s) → `press_app_implementer` → `qa_release_reviewer` |
 | Release-only review | `qa_release_reviewer` |
+| Git safety contract | `press_system_architect` → `press_app_implementer` → `qa_release_reviewer` → authorized focused commit |
 
 Use `press_system_architect` only when a task crosses at least two ownership boundaries or materially changes workflow topology. Ordinary UI, implementation, contract, and release-review work bypasses it.
 
@@ -32,6 +33,12 @@ Each handoff states:
 - unresolved questions that block dependent work.
 
 No dependent implementation may run in parallel with its owning contract decision. Contract uncertainty returns to the relevant specialist; it is not resolved by implementation guesswork.
+
+## Git authority handoff
+
+Git routing is not Git authority. A current Linear task or user instruction may authorize one exact operation, but does not authorize a sandbox escape, wrapper/evaluator, script mutation, delivery action, or broader repository action.
+
+After BAP-38, ordinary implementation follows `press_app_implementer` → `qa_release_reviewer` → `press_app_implementer` focused mutation. The focused mutation must use the Git safety contract's exact staging and cached-diff evidence. Cross-boundary Git policy changes use `press_system_architect` → `press_app_implementer` → `qa_release_reviewer` → an authorized focused commit. Specialists, QA, and release reviewers remain read-only.
 
 ## Concurrency and delegation
 

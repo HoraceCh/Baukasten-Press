@@ -22,7 +22,7 @@ export default defineConfig(
 			},
 			parserOptions: {
 				projectService: {
-					allowDefaultProject: ['eslint.config.mts', 'manifest.json', 'scripts/validate-agent-infrastructure.mjs', 'scripts/validate-environment.mjs', 'scripts/run-contract-tests.mjs', 'tests/environment-contract.test.mjs', 'tests/run-contract-tests.test.mjs'],
+				allowDefaultProject: ['eslint.config.mts', 'manifest.json', 'scripts/validate-agent-infrastructure.mjs', 'scripts/validate-environment.mjs', 'scripts/run-contract-tests.mjs', 'tests/environment-contract.test.mjs', 'tests/run-contract-tests.test.mjs'],
 				},
 				tsconfigRootDir: import.meta.dirname,
 				extraFileExtensions: ['.json'],
@@ -31,7 +31,7 @@ export default defineConfig(
 	},
 	...obsidianmd.configs.recommended,
 	{
-		files: ['scripts/validate-agent-infrastructure.mjs', 'scripts/validate-environment.mjs', 'scripts/run-contract-tests.mjs', 'tests/environment-contract.test.mjs', 'tests/run-contract-tests.test.mjs'],
+		files: ['scripts/validate-agent-infrastructure.mjs', 'scripts/validate-environment.mjs', 'scripts/validate-git-safety.mjs', 'scripts/run-contract-tests.mjs', 'tests/environment-contract.test.mjs', 'tests/git-safety-contract.test.mjs', 'tests/run-contract-tests.test.mjs'],
 		languageOptions: {
 			globals: globals.node,
 		},
@@ -44,6 +44,19 @@ export default defineConfig(
 		rules: {
 			'no-console': 'off',
 			'obsidianmd/rule-custom-message': 'off',
+		},
+	},
+	{
+		files: ['scripts/validate-git-safety.mjs', 'tests/git-safety-contract.test.mjs'],
+		extends: [tseslint.configs.disableTypeChecked],
+		languageOptions: {
+			globals: globals.node,
+			parserOptions: {
+				projectService: false,
+			},
+		},
+		rules: {
+			'obsidianmd/no-nodejs-modules': 'off',
 		},
 	},
 	{
