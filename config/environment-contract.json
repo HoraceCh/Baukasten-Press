@@ -12,7 +12,7 @@
   "environment": {
     "repository": {"root": "F:\\Projects\\Baukasten Press", "slug": "HoraceCh/Baukasten-Press"},
     "toolchain": {"node": "24.14.1", "npm": "11.14.1", "packageManager": "npm", "lockfile": "package-lock.json", "lockfileVersion": 3, "requiredLockedPackages": ["esbuild", "typescript", "eslint"]},
-    "paths": {"tracked": [".agents/", ".codex/", ".editorconfig", ".gitignore", ".npmrc", ".serena/", "AGENTS.md", "README.md", "config/", "docs/", "scripts/", "src/", "tests/", "manifest.json", "package.json", "package-lock.json", "tsconfig.json", "eslint.config.mts", "esbuild.config.mjs", "styles.css", "versions.json", "version-bump.mjs"], "ignoredRuntime": ["data.json", "node_modules/", ".npm-cache/", "main.js", "*.map"]},
+    "paths": {"tracked": [".agents/", ".codex/", ".editorconfig", ".gitignore", ".npmrc", ".opencode/", ".serena/", "AGENTS.md", "README.md", "config/", "docs/", "opencode.jsonc", "scripts/", "src/", "tests/", "manifest.json", "package.json", "package-lock.json", "tsconfig.json", "eslint.config.mts", "esbuild.config.mjs", "styles.css", "versions.json", "version-bump.mjs"], "ignoredRuntime": ["data.json", "node_modules/", ".npm-cache/", "main.js", "*.map"]},
     "optional": {}, "default": {}, "envVariables": {}, "secrets": {}, "profileNames": ["local", "test", "production-like"],
     "profiles": {
       "local": {"responsibility": "local development without external authority", "capabilities": {"providerAccess": false, "publicationAccess": false, "credentialAccess": false, "credentialStorage": false, "networkAccess": false, "vaultAccess": false, "vaultWrites": false, "externalProductionWrites": false}},
