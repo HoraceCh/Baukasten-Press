@@ -48,7 +48,7 @@ Future application work must add deterministic fixtures and an explicit allow/de
 
 ## Validation gates and evidence
 
-`npm run validate` is the unified local and future PR validation input. Its fixed order is environment validation, agent governance validation, deterministic contract tests, type checking, linting, and production build. A failed stage stops the command and is evidence of a failed gate; a successful run reports only the standard tool output and `Contract tests passed.`
+`npm run validate` is the unified local and future PR validation input. Its fixed order is environment validation, agent governance validation, Git safety validation, deterministic contract tests, type checking, linting, and production build. A failed stage stops the command and is evidence of a failed gate; a successful run reports only the standard tool output and `Contract tests passed.`
 
 Future PR validation consumes this command without broadening its permissions. Release review consumes the resulting command exit status, committed diff, and the known contract-suite mapping; it must remain read-only. No Phase 0 test result is evidence that a vault, Website, Admin, provider, credential store, queue, or publication destination was contacted.
 
