@@ -1,0 +1,76 @@
+// Baukasten Press — project-local OpenCode configuration.
+//
+// This file overrides the inherited global config
+// (~/.config/opencode/opencode.json) with this repository's controlled
+// execution policy. It does NOT redefine providers, models, MCP servers,
+// or unrelated global settings — those remain inherited.
+//
+// Canonical governance lives in AGENTS.md, docs/AGENT_ROUTING.md,
+// docs/GIT_SAFETY.md, and config/git-safety-contract.json. This file
+// implements that governance; it does not create competing rules.
+// Build remains the normal interactive entry point.
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "permission": {
+    // Repository boundary: the current repository is the authorized
+    // workspace. Access outside the repository requires explicit approval.
+    "external_directory": {
+      "*": "ask"
+    },
+
+    "bash": {
+      // Default: executable shell commands require approval unless
+      // explicitly allowed below.
+      "*": "ask",
+
+      // --- Denied by default: delivery, destructive, history-rewrite ---
+      "git push*": "deny",
+      "git clean*": "deny",
+      "git reset*": "deny",
+      "git merge*": "deny",
+      "git rebase*": "deny",
+      "git checkout*": "deny",
+      "git restore*": "deny",
+      "git stash*": "deny",
+      "git cherry-pick*": "deny",
+      "git rm*": "deny",
+      "git mv*": "deny",
+      "git -C*": "deny",
+      "git --git-dir*": "deny",
+      "git --work-tree*": "deny",
+
+      // --- Intentional local Git mutation requires approval ---
+      "git add*": "ask",
+      "git commit*": "ask",
+      "git branch*": "ask",
+      "git switch*": "ask",
+      "git tag*": "ask",
+
+      // --- Read-only Git inspection (see docs/GIT_SAFETY.md) ---
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git show*": "allow",
+      "git rev-parse*": "allow",
+      "git branch --show-current*": "allow",
+      "git config --get*": "allow",
+      "git ls-files*": "allow",
+      "git grep*": "allow",
+      "git remote get-url*": "allow",
+
+      // --- Project validation (confirmed in package.json scripts) ---
+      "npm run validate*": "allow",
+      "npm run typecheck": "allow",
+      "npm run lint": "allow",
+      "npm run build": "allow",
+      "npm run dev": "allow",
+      "npm run test:contracts": "allow",
+      "npm run version:files": "allow",
+      "node --test *": "allow",
+      "node scripts/*": "allow",
+      "node esbuild.config.mjs*": "allow",
+      "node version-bump.mjs*": "allow"
+    }
+  }
+}
