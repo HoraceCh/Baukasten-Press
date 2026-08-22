@@ -1,5 +1,18 @@
 # Agency Agents adoption record
 
+## Ponytail provenance and adoption boundary
+
+- Upstream repository: `DietrichGebert/ponytail`
+- Pinned release snapshot: tag `v4.8.4`, commit `bc9ee949d5f439e8b9f3bb92c6d6d3d1e6ebd324`
+- License: MIT
+- Dependency status: advisory provenance only; no package, plugin, script, runtime dependency, floating `main` reference, or online dynamic loading is permitted.
+
+This record adopts only three bounded ideas from the pinned snapshot: a minimal implementation ladder, over-engineering review, and repository audit. They remain advisory inputs to project-local work; they do not install or register Ponytail content, change Agent ownership or routing, create publication authority, alter Git authority, or create an acceptance target based on upstream benchmark numbers.
+
+The following Ponytail mechanisms are explicitly rejected: global plugin installation, lifecycle hooks, global mode state, the `ponytail-debt` backlog, and automatic subagent injection. Baukasten Press `AGENTS.md`, architecture and publication contracts, BAP-42 validation, and Git Governance remain authoritative and override every upstream suggestion.
+
+Any future upstream refresh must pin a new release snapshot and repeat content, compatibility, and authority review before its results may be recorded here. QA must be able to verify the adopted and rejected subsets from this repository alone, without a network lookup.
+
 ## Provenance and disposition
 
 - Upstream pattern library: `msitarzewski/agency-agents`
