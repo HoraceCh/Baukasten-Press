@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import test from 'node:test';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-import { auditIndirectCallers, auditPackageScripts, auditRepository, authorizeDeliveryMutation, authorizeImplementationMutation, classifyGitArguments, policyPath, repositoryRoot, validateExactRelativePath, validatePolicy } from '../scripts/validate-git-safety.mjs';
+import { auditIndirectCallers, auditPackageScripts, auditRepository, authorizeDeliveryMutation, authorizeImplementationMutation, canonicalValidatorGitArguments, classifyGitArguments, policyPath, repositoryRoot, validateExactRelativePath, validatePolicy } from '../scripts/validate-git-safety.mjs';
 import { parseStrictJson } from '../scripts/validate-environment.mjs';
 
 const executeFile = promisify(execFile);
@@ -25,6 +26,21 @@ test('policy is exact, strict, and recognizes only the safe command forms', () =
 	assert.equal(classifyGitArguments(['commit', '-m', 'docs(git): define safety contract']), 'implementation-mutation');
 	assert.equal(classifyGitArguments(['push']), 'delivery-mutation');
 	assert.equal(classifyGitArguments(['branch', 'topic']), 'delivery-mutation');
+});
+
+test('validator Git context permits only the canonical repository with a literal safe-directory argument', () => {
+	assert.deepEqual(canonicalValidatorGitArguments(repositoryRoot, ['ls-files']), ['-c', `safe.directory=${path.resolve(repositoryRoot)}`, 'ls-files']);
+	assert.throws(() => canonicalValidatorGitArguments(path.join(repositoryRoot, 'unrelated-repository'), ['ls-files']));
+	assert.throws(() => canonicalValidatorGitArguments(repositoryRoot, ['ls-files', '']));
+});
+
+test('validator fails closed when its isolated Git context cannot execute', async () => {
+	const result = await auditRepository({ run: async () => {
+		const error = new Error('isolated Git execution failed');
+		error.code = 'EPERM';
+		throw error;
+	} });
+	assert.equal(result, 'COMMAND_FAILED');
 });
 
 test('paths and mutation/evaluator/history forms fail closed', () => {
@@ -94,9 +110,7 @@ test('indirect caller audit denies undeclared or dynamic Git surfaces without ex
 });
 
 test('the disposable fixture commits only its exact staged path and preserves unrelated changes', async () => {
-	const fixture = path.join(repositoryRoot, '.npm-cache', 'git-safety-fixtures', 'exact-stage');
-	await rm(fixture, { recursive: true, force: true });
-	await mkdir(fixture, { recursive: true });
+	const fixture = await mkdtemp(path.join(tmpdir(), 'bap-38-git-safety-'));
 	const run = (args) => executeFile('git', args, { cwd: fixture, shell: false, env: { PATH: process.env.PATH ?? '', SYSTEMROOT: process.env.SYSTEMROOT ?? '' } });
 	try {
 		await run(['init']); await run(['config', 'user.email', 'fixture@example.invalid']); await run(['config', 'user.name', 'BAP-38 fixture']);

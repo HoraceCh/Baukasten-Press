@@ -12,7 +12,7 @@ const executeFile = promisify(execFile);
 const scriptPath = fileURLToPath(import.meta.url);
 export const policyPath = path.join(repositoryRoot, 'config', 'git-safety-contract.json');
 export const safeFailureCodes = new Set(['ARGUMENTS_INVALID', 'POLICY_READ_FAILED', 'POLICY_INVALID', 'ENVIRONMENT_CONTRACT_INVALID', 'PACKAGE_INVALID', 'PACKAGE_SCRIPT_INVALID', 'GIT_ALIAS_INVALID', 'GIT_INCLUDE_INVALID', 'GIT_HOOK_INVALID', 'TRACKED_SURFACE_INVALID', 'INDIRECT_CALLER_INVALID', 'AUTHORIZATION_INVALID', 'DELIVERY_AUTHORIZATION_REQUIRED', 'COMMAND_FAILED']);
-const expectedPolicyKeys = ['contractVersion', 'repositoryAuthority', 'transport', 'commandClasses', 'implementationRequirements', 'prohibitedGitCommands', 'prohibitedGitArguments', 'approvedIndirectCallers', 'safeFailureCodes'];
+const expectedPolicyKeys = ['contractVersion', 'repositoryAuthority', 'transport', 'validatorGitContext', 'commandClasses', 'implementationRequirements', 'prohibitedGitCommands', 'prohibitedGitArguments', 'approvedIndirectCallers', 'safeFailureCodes'];
 const expectedClasses = ['readOnly', 'implementationMutation', 'deliveryMutation'];
 const expectedRequirements = ['explicitOperationAuthority', 'pressAppImplementer', 'liveBapIssue', 'exactPathAllowlist', 'unrelatedWorkPreserved', 'focusedValidation', 'independentQa', 'cachedDiffEvidence', 'linearCompletionEvidence'];
 const expectedProhibitedCommands = ['reset', 'clean', 'restore', 'checkout', 'stash', 'rebase', 'cherry-pick', 'merge', 'force', 'filter-branch', 'filter-repo', 'rm', 'mv', 'update-ref', 'replace', 'reflog', 'gc', 'prune', 'init', 'clone', 'submodule', 'worktree'];
@@ -25,9 +25,15 @@ const fail = (code) => safeFailureCodes.has(code) ? code : 'POLICY_INVALID';
 
 export function validatePolicy(policy) {
 	if (!exactKeys(policy, expectedPolicyKeys) || policy.contractVersion !== '1.0' || policy.repositoryAuthority !== 'config/environment-contract.json' || policy.transport !== 'rtk') return fail('POLICY_INVALID');
+	if (!exactKeys(policy.validatorGitContext, ['safeDirectory', 'environment', 'shell']) || policy.validatorGitContext.safeDirectory !== 'canonical-root' || policy.validatorGitContext.environment !== 'empty' || policy.validatorGitContext.shell !== false) return fail('POLICY_INVALID');
 	if (!exactKeys(policy.commandClasses, expectedClasses) || !equalStrings(policy.commandClasses.readOnly, ['status', 'diff', 'log', 'show', 'rev-parse', 'config --get', 'ls-files', 'grep', 'branch --show-current', 'remote get-url origin']) || !equalStrings(policy.commandClasses.implementationMutation, ['add <exact-relative-path>', 'add -p <exact-relative-path>', 'commit -m <conventional-subject>']) || !equalStrings(policy.commandClasses.deliveryMutation, ['push', 'switch', 'branch', 'remote branch', 'pull request', 'ruleset', 'branch protection'])) return fail('POLICY_INVALID');
 	if (!equalStrings(policy.implementationRequirements, expectedRequirements) || !equalStrings(policy.prohibitedGitCommands, expectedProhibitedCommands) || !equalStrings(policy.prohibitedGitArguments, expectedProhibitedArguments) || !equalStrings(policy.approvedIndirectCallers, expectedIndirectCallers) || !equalStrings(policy.safeFailureCodes, [...safeFailureCodes])) return fail('POLICY_INVALID');
 	return null;
+}
+
+export function canonicalValidatorGitArguments(root, argumentsList) {
+	if (!Array.isArray(argumentsList) || argumentsList.some((entry) => typeof entry !== 'string' || entry.length === 0) || path.resolve(root) !== path.resolve(repositoryRoot)) throw new Error('Canonical Git validator context is unavailable.');
+	return ['-c', `safe.directory=${path.resolve(repositoryRoot)}`, ...argumentsList];
 }
 
 export function validateExactRelativePath(value) {
@@ -112,7 +118,7 @@ export async function auditIndirectCallers(paths, { root = repositoryRoot, readT
 		const executionText = text.replace(/readText:\s*async\s*\(\)\s*=>\s*(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '');
 		const calls = literalArray(executionText);
 		const hasDirectGit = /(?:run|execFile|executeFile)\(\s*['"]git['"]/.test(executionText);
-		const fixtureWrapper = entry === 'tests/git-safety-contract.test.mjs' && executionText.includes("executeFile('git', args, { cwd: fixture, shell: false") && executionText.includes("path.join(repositoryRoot, '.npm-cache', 'git-safety-fixtures'");
+		const fixtureWrapper = entry === 'tests/git-safety-contract.test.mjs' && executionText.includes("executeFile('git', args, { cwd: fixture, shell: false") && executionText.includes("mkdtemp(path.join(tmpdir(), 'bap-38-git-safety-'))");
 		if (!hasDirectGit && !fixtureWrapper) continue;
 		if (!expectedIndirectCallers.includes(entry)) return fail('INDIRECT_CALLER_INVALID');
 		if (fixtureWrapper) {
@@ -130,7 +136,7 @@ export async function auditIndirectCallers(paths, { root = repositoryRoot, readT
 	return null;
 }
 
-export async function auditRepository({ root = repositoryRoot, readText = (file) => readFile(file, 'utf8'), run = (command, args) => executeFile(command, args, { cwd: root, shell: false, env: {} }) } = {}) {
+export async function auditRepository({ root = repositoryRoot, readText = (file) => readFile(file, 'utf8'), run } = {}) {
 	let policyText; let environmentText; let exampleText; let packageText;
 	try { [policyText, environmentText, exampleText, packageText] = await Promise.all([readText(path.join(root, 'config', 'git-safety-contract.json')), readText(path.join(root, 'config', 'environment-contract.json')), readText(path.join(root, 'config', 'environment.example.json')), readText(path.join(root, 'package.json'))]); } catch { return fail('POLICY_READ_FAILED'); }
 	let policy; let manifest;
@@ -138,6 +144,7 @@ export async function auditRepository({ root = repositoryRoot, readText = (file)
 	if (validatePolicy(policy)) return fail('POLICY_INVALID');
 	if (await validateEnvironment({ authorityText: environmentText, configText: exampleText, root, currentDirectory: root, environment: {}, readText })) return fail('ENVIRONMENT_CONTRACT_INVALID');
 	const scripts = auditPackageScripts(manifest); if (scripts) return scripts;
+	run ??= (command, args) => executeFile(command, canonicalValidatorGitArguments(root, args), { cwd: root, shell: false, env: {} });
 	const output = (result) => typeof result === 'string' ? result : result.stdout ?? '';
 	const optionalGitConfig = async (args, failureCode) => {
 		try { return await run('git', args); } catch (error) { return error?.code === 1 ? { stdout: '' } : failureCode; }

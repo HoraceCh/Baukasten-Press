@@ -2,6 +2,11 @@
   "contractVersion": "1.0",
   "repositoryAuthority": "config/environment-contract.json",
   "transport": "rtk",
+  "validatorGitContext": {
+    "safeDirectory": "canonical-root",
+    "environment": "empty",
+    "shell": false
+  },
   "commandClasses": {
     "readOnly": ["status", "diff", "log", "show", "rev-parse", "config --get", "ls-files", "grep", "branch --show-current", "remote get-url origin"],
     "implementationMutation": ["add <exact-relative-path>", "add -p <exact-relative-path>", "commit -m <conventional-subject>"],
