@@ -147,6 +147,34 @@ for (const [expectedName, expected] of EXPECTED_AGENTS) {
 	}
 }
 
+const EXPECTED_COMPLEXITY_SKILLS = new Map([
+	['complexity-review', ['DietrichGebert/ponytail', 'v4.8.4', 'bc9ee949d5f439e8b9f3bb92c6d6d3d1e6ebd324', 'MIT', 'docs/AGENCY_AGENTS_ADOPTION.md', 'read-only by default', 'delete', 'stdlib', 'native', 'yagni', 'shrink', '"findings"', 'subordinate']],
+	['complexity-audit', ['DietrichGebert/ponytail', 'v4.8.4', 'bc9ee949d5f439e8b9f3bb92c6d6d3d1e6ebd324', 'MIT', 'docs/AGENCY_AGENTS_ADOPTION.md', 'read-only by default', '"impact"', '"findings"', '"mutationsPerformed": 0', 'subordinate']],
+]);
+
+for (const [skillName, markers] of EXPECTED_COMPLEXITY_SKILLS) {
+	let text;
+	try {
+		text = await readRepositoryText('.agents', 'skills', skillName, 'SKILL.md');
+	} catch (error) {
+		errors.push(`Missing .agents/skills/${skillName}/SKILL.md: ${error.message}`);
+		continue;
+	}
+
+	governedTexts.push(text);
+	if (!new RegExp(`^name:\\s*${skillName}\\s*$`, 'm').test(text)) {
+		errors.push(`.agents/skills/${skillName}/SKILL.md frontmatter name mismatch.`);
+	}
+	if (!/^description:\s*\S/m.test(text)) {
+		errors.push(`.agents/skills/${skillName}/SKILL.md has no description.`);
+	}
+	for (const marker of markers) {
+		if (!text.includes(marker)) {
+			errors.push(`.agents/skills/${skillName}/SKILL.md is missing required marker: ${marker}.`);
+		}
+	}
+}
+
 const routingOwnerReferences = new Set(
 	[...routing.matchAll(/\b[a-z][a-z0-9_]*(?:architect|guardian|engineer|implementer|reviewer)\b/g)].map(
 		(match) => match[0],
@@ -181,4 +209,4 @@ if (errors.length > 0) {
 	process.exit(1);
 }
 
-console.log(`Agent infrastructure valid: ${expectedNames.join(', ')}`);
+console.log(`Agent infrastructure valid: ${expectedNames.join(', ')}; complexity skills valid: ${[...EXPECTED_COMPLEXITY_SKILLS.keys()].join(', ')}`);
