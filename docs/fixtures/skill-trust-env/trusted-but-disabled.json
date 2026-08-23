@@ -1,0 +1,16 @@
+{
+  "scenario_id": "trusted-but-disabled",
+  "manifest_slice": {
+    "skill_id": "example.trusted-skill",
+    "trust_state": "trusted",
+    "enabled": false
+  },
+  "environment_evaluation": "compatible",
+  "expected": {
+    "state_valid": true,
+    "available_candidate": false,
+    "unavailability_reasons": ["A1"],
+    "trust_evidence_affected": false,
+    "notes": "Trusted + disabled proves axis orthogonality; disablement does not touch trust history."
+  }
+}

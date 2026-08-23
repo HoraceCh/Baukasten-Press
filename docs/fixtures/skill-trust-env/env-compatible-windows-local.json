@@ -1,0 +1,40 @@
+{
+  "scenario_id": "env-compatible-windows-local",
+  "manifest_slice": {
+    "skill_id": "example.windows-local-skill",
+    "trust_state": "trusted",
+    "enabled": true
+  },
+  "environment_declaration": {
+    "schema_version": 1,
+    "skill_id": "example.windows-local-skill",
+    "os": { "supported": ["windows"] },
+    "runtime_constraints": [{ "name": "node", "constraint": ">=24" }],
+    "gui": "none",
+    "headless": "supported",
+    "required_tools": [{ "name": "git", "check_hint": "git --version" }],
+    "required_mcp_capabilities": [],
+    "filesystem_assumptions": ["workspace-only writes"],
+    "network": "none",
+    "credential_category": "none",
+    "capability_expectations": {
+      "read": "repository",
+      "write_scope": "none",
+      "external_write": false
+    },
+    "project_scope": ["F:\\Projects\\Baukasten Press"]
+  },
+  "host_context": {
+    "os_detected": "windows",
+    "gui_available": false,
+    "headless": true,
+    "tools_verified": { "git": true },
+    "mcp_available": {}
+  },
+  "expected": {
+    "category_verdicts": { "os": "compatible", "gui": "compatible", "tools": "compatible", "network": "compatible" },
+    "overall_compatibility": "compatible",
+    "available_candidate": true,
+    "notes": "Windows local acceptance class: all required categories verified compatible; no GUI requirement so headless host is fine."
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "scenario_id": "env-unknown-fail-closed",
+  "manifest_slice": {
+    "skill_id": "example.underspecified-skill",
+    "trust_state": "trusted",
+    "enabled": true
+  },
+  "environment_declaration": {
+    "schema_version": 1,
+    "skill_id": "example.underspecified-skill",
+    "os": { "supported": ["any"] },
+    "runtime_constraints": [],
+    "gui": "none",
+    "headless": "supported",
+    "required_tools": [{ "name": "mystery-renderer", "check_hint": "" }],
+    "required_mcp_capabilities": [],
+    "filesystem_assumptions": [],
+    "network": "egress_optional",
+    "credential_category": "none",
+    "capability_expectations": {
+      "read": "repository",
+      "write_scope": "runtime_ignored_artifacts_only",
+      "external_write": false
+    },
+    "project_scope": ["F:\\Projects\\Baukasten Press"]
+  },
+  "host_context": {
+    "os_detected": "windows",
+    "gui_available": false,
+    "headless": true,
+    "tools_verified": {},
+    "unverifiable_requirements": ["mystery-renderer: no check_hint and no known verification method"]
+  },
+  "expected": {
+    "category_verdicts": { "tools": "unknown" },
+    "overall_compatibility": "unknown",
+    "available_candidate": false,
+    "unavailability_reasons": ["A4"],
+    "notes": "Unknown required environment MUST fail closed: unknown is never silently treated as compatible, even for a trusted skill."
+  }
+}

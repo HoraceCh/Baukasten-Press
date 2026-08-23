@@ -1,0 +1,41 @@
+{
+  "scenario_id": "env-incompatible-ubuntu-headless",
+  "manifest_slice": {
+    "skill_id": "example.gui-skill",
+    "trust_state": "trusted",
+    "enabled": true
+  },
+  "environment_declaration": {
+    "schema_version": 1,
+    "skill_id": "example.gui-skill",
+    "os": { "supported": ["windows", "ubuntu"] },
+    "runtime_constraints": [],
+    "gui": "required",
+    "headless": "unsupported",
+    "required_tools": [],
+    "required_mcp_capabilities": [],
+    "filesystem_assumptions": ["workspace-only writes"],
+    "network": "none",
+    "credential_category": "none",
+    "capability_expectations": {
+      "read": "repository",
+      "write_scope": "none",
+      "external_write": false
+    },
+    "project_scope": ["F:\\Projects\\Baukasten Press"]
+  },
+  "host_context": {
+    "os_detected": "ubuntu",
+    "gui_available": false,
+    "headless": true,
+    "tools_verified": {},
+    "mcp_available": {}
+  },
+  "expected": {
+    "category_verdicts": { "gui": "incompatible", "headless": "incompatible" },
+    "overall_compatibility": "incompatible",
+    "available_candidate": false,
+    "unavailability_reasons": ["A3"],
+    "notes": "Ubuntu headless acceptance class: skill requires GUI; headless Ubuntu host cannot satisfy it, so overall is incompatible regardless of trust."
+  }
+}
