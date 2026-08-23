@@ -1,6 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { validateSkillRegistry } from './validate-skill-registry.mjs';
 
 const EXPECTED_AGENTS = new Map([
 	['press_system_architect', { model: 'gpt-5.6-sol', reasoning: 'high', sandbox: 'read-only' }],
@@ -201,6 +202,9 @@ for (const pattern of ['~/.codex/agents', '~\\.codex\\agents', '$HOME/.codex/age
 	}
 }
 
+const registryResult = await validateSkillRegistry(repositoryRoot);
+errors.push(...registryResult.errors);
+
 if (errors.length > 0) {
 	console.error('Agent infrastructure validation failed:');
 	for (const error of errors) {
@@ -209,4 +213,4 @@ if (errors.length > 0) {
 	process.exit(1);
 }
 
-console.log(`Agent infrastructure valid: ${expectedNames.join(', ')}; complexity skills valid: ${[...EXPECTED_COMPLEXITY_SKILLS.keys()].join(', ')}`);
+console.log(`Agent infrastructure valid: ${expectedNames.join(', ')}; complexity skills valid: ${[...EXPECTED_COMPLEXITY_SKILLS.keys()].join(', ')}; skill registry valid: ${registryResult.stats.governedSkills} governed skills, ${registryResult.stats.fixturesChecked} governance fixtures checked`);
