@@ -1,0 +1,8 @@
+{
+  "scenario_id": "invalid-fix-changing-identity",
+  "participants": [
+    { "record": "revision", "skill_id": "example.original-skill", "revision_id": "rev-0001", "origin_kind": "authored" },
+    { "record": "revision", "skill_id": "example.brand-new-identity", "revision_id": "rev-0002", "origin_kind": "fixed", "parent_revision_ids": ["example.original-skill@rev-0001"] }
+  ],
+  "expected": { "verdict": "INVALID", "violation_class": "L4a", "notes": "A FIX must preserve the stable skill_id of its parent revision; minting a different identity under origin_kind fixed is identity laundering." }
+}

@@ -1,0 +1,9 @@
+{
+  "scenario_id": "valid-supersession-rollback",
+  "participants": [
+    { "record": "revision", "skill_id": "example.rolling-skill", "revision_id": "rev-0001", "content_hash": "sha256:111aaa", "origin_kind": "authored" },
+    { "record": "revision", "skill_id": "example.rolling-skill", "revision_id": "rev-0002", "content_hash": "sha256:222bbb", "origin_kind": "fixed", "parent_revision_ids": ["example.rolling-skill@rev-0001"] },
+    { "record": "governed_decision", "decision_type": "supersession_and_rollback", "broken_revision": "example.rolling-skill@rev-0002", "superseded_by_revision": "example.rolling-skill@rev-0003", "routing_rolled_back_to": "example.rolling-skill@rev-0001", "decided_by": "human:Horace", "rationale": "rev-0002 introduced a regression; rev-0003 corrects it; routing restored to last-good rev-0001 until re-validation", "recorded_at": "2026-08-23T15:00:00Z" }
+  ],
+  "expected": { "verdict": "VALID", "notes": "Broken revision never deleted or rewritten; supersession recorded; rollback is a governed routing decision with authority and rationale; all revisions remain auditable." }
+}

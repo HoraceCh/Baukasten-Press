@@ -1,0 +1,7 @@
+{
+  "scenario_id": "invalid-retired-reactivation",
+  "participants": [
+    { "record": "manifest_slice", "skill_id": "example.superseded-skill", "trust_state": "retired", "enabled": true, "attempted_by": "execution agent", "authority_decision_recorded": false }
+  ],
+  "expected": { "verdict": "INVALID", "violation_class": "L7", "notes": "Retired is terminal under normal routing; enabled:true alone never re-enables; no governed authority decision exists. Reactivation requires governed readmission as a NEW identity or an explicit authorized exception decision." }
+}

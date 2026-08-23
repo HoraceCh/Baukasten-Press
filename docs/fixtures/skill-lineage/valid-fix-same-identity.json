@@ -1,0 +1,8 @@
+{
+  "scenario_id": "valid-fix-same-identity",
+  "participants": [
+    { "record": "revision", "skill_id": "example.fixable-skill", "revision_id": "rev-0001", "origin_kind": "authored", "parent_revision_ids": [], "content_hash": "sha256:aaa111", "admission_decision": { "decision": "admitted", "decided_by": "human:Horace" } },
+    { "record": "revision", "skill_id": "example.fixable-skill", "revision_id": "rev-0002", "origin_kind": "fixed", "parent_revision_ids": ["example.fixable-skill@rev-0001"], "content_hash": "sha256:bbb222", "evidence_refs": ["evd-000005 (defect)", "post-fix validation record"], "change_summary": "corrected procedure step that produced incorrect output", "admission_decision": { "decision": "admitted", "decided_by": "press_app_implementer routing owner" } }
+  ],
+  "expected": { "verdict": "VALID", "notes": "Same logical identity preserved; new revision; parent pinned; prior negative evidence remains auditable." }
+}

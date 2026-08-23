@@ -1,0 +1,8 @@
+{
+  "scenario_id": "valid-derived-new-identity",
+  "participants": [
+    { "record": "revision", "skill_id": "example.canonical-skill", "revision_id": "rev-0001", "origin_kind": "authored" },
+    { "record": "revision", "skill_id": "example.specialized-skill", "revision_id": "rev-0001", "origin_kind": "derived", "parent_skill_ids": ["example.canonical-skill"], "content_hash": "sha256:ccc333", "change_summary": "specialized variant with divergent identity boundary documented", "admission_decision": { "decision": "admitted", "decided_by": "human:Horace" } }
+  ],
+  "expected": { "verdict": "VALID", "notes": "New stable skill_id minted; parent resolvable; divergence reason recorded; source provenance preserved." }
+}

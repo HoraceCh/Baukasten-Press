@@ -1,0 +1,12 @@
+{
+  "scenario_id": "valid-captured-lineage",
+  "participants": [
+    { "record": "revision", "skill_id": "example.captured-workflow", "revision_id": "rev-0001", "origin_kind": "captured", "parent_skill_ids": [], "content_hash": "sha256:ddd444", "guardrail_prerequisites": {
+      "procedure_evidence": "evd-000003 (repeatable steps exercised across governed runs)",
+      "independent_postcondition_validation": "post-run checks executed outside the producing task",
+      "capability_boundary": "covers repository-local doc generation only; no external writes",
+      "limitations_preconditions": ["requires git available", "single-repository scope"]
+    }, "change_summary": "reusable subworkflow captured from independently verified execution pattern", "admission_decision": { "decision": "admitted_provisional", "decided_by": "human:Horace" } }
+  ],
+  "expected": { "verdict": "VALID", "notes": "All four CAPTURED guardrail prerequisites present; enters provisional at best, never trusted directly." }
+}
