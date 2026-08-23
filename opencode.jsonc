@@ -72,5 +72,7 @@
       "node esbuild.config.mjs*": "allow",
       "node version-bump.mjs*": "allow"
     }
-  }
+  },
+
+  "lsp": true
 }
