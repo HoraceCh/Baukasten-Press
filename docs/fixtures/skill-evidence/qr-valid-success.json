@@ -1,0 +1,14 @@
+{
+  "quality_schema_version": 1,
+  "quality_record_id": "qr-000001",
+  "evidence_id": "evd-000001",
+  "validation_status": "pass",
+  "independent_qa_status": "pass",
+  "deterministic_checks": [{ "name": "git diff --check", "result": "pass" }],
+  "warnings": [],
+  "defect_classification": null,
+  "output_acceptance": "accepted",
+  "reviewer_reference": "independent-qa-instance",
+  "evidence_basis": ["npm run validate (exit 0)", "commit:07d01308312ca6ec5af5818a861e025498e5fc39"],
+  "quality_category": "satisfactory"
+}

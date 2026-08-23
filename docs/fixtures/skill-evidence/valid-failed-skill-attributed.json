@@ -1,0 +1,23 @@
+{
+  "evidence_schema_version": 1,
+  "evidence_id": "evd-000005",
+  "task_ref": null,
+  "skill_id": "example.canonical-skill",
+  "revision_id": "rev-0001",
+  "outcome": "failed",
+  "invoking_agent_owner": "press_app_implementer",
+  "invoking_runtime": "opencode",
+  "repository_head": "07d01308312ca6ec5af5818a861e025498e5fc39",
+  "recorded_at": "2026-08-23T14:40:00Z",
+  "actor": "human:Horace",
+  "environment_result_ref": "compatible",
+  "tool_observations": [{ "name": "git", "status": "available" }],
+  "validation_refs": ["procedure step produced incorrect output; deterministic check failed"],
+  "qa_outcome": "fail",
+  "failure_attribution": "skill",
+  "fallback_reason": null,
+  "quality_record_id": null,
+  "provenance_refs": ["docs/AGENCY_OPENSPACE_ADOPTION.md"],
+  "redaction_status": "verified_redacted",
+  "producer": { "identity": "validator:contract-fixture", "mechanism": "deterministic contract example" }
+}
