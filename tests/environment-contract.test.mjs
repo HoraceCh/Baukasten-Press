@@ -52,21 +52,23 @@ test('authority is sole source, and the example is the exact two-key local selec
 test('environment Git transport is exact, isolated, and unaffected by hostile Git metadata', async () => {
 	const calls = [];
 	const exactGit = runExactGit.bind(null, 'git');
-	const result = await exactGit(['status', '--short'], authority.environment.repository.root, async (...argumentsList) => {
+	const result = await exactGit(['status', '--short'], repositoryRoot, async (...argumentsList) => {
 		calls.push(argumentsList);
 		return { stdout: 'safe\n' };
 	});
 	assert.equal(result, 'safe');
 	assert.deepEqual(calls, [[
 		'git',
-		canonicalEnvironmentGitArguments(authority.environment.repository.root, ['status', '--short']),
-		{ cwd: authority.environment.repository.root, env: {}, shell: false },
+		canonicalEnvironmentGitArguments(repositoryRoot, ['status', '--short']),
+		{ cwd: repositoryRoot, env: {}, shell: false },
 	]]);
-	await assert.rejects(() => runExactGit('npm', ['--version'], authority.environment.repository.root, async () => { throw new Error('unexpected'); }));
+	await assert.rejects(() => runExactGit('npm', ['--version'], repositoryRoot, async () => { throw new Error('unexpected'); }));
 	const hostileCalls = [];
-	const failure = await validateEnvironment(options({
-		environment: { GIT_DIR: sentinel, GIT_CONFIG_GLOBAL: sentinel },
-		gitRun: (command, args) => runExactGit(command, args, authority.environment.repository.root, async (...argumentsList) => {
+	const failure = await validateEnvironment(ciOptions({
+		root: repositoryRoot,
+		currentDirectory: repositoryRoot,
+		environment: { ...authority.environment.repository.ciRootPolicy.metadata, GITHUB_WORKSPACE: repositoryRoot, GIT_DIR: sentinel, GIT_CONFIG_GLOBAL: sentinel },
+		gitRun: (command, args) => runExactGit(command, args, repositoryRoot, async (...argumentsList) => {
 			hostileCalls.push(argumentsList);
 			throw new Error(sentinel);
 		}),
@@ -76,8 +78,8 @@ test('environment Git transport is exact, isolated, and unaffected by hostile Gi
 	assert.equal(hostileCalls.length, 3);
 	for (const [command, argumentsList, invocation] of hostileCalls) {
 		assert.equal(command, 'git');
-		assert.deepEqual(argumentsList.slice(0, 2), ['-c', `safe.directory=${path.resolve(authority.environment.repository.root)}`]);
-		assert.deepEqual(invocation, { cwd: authority.environment.repository.root, env: {}, shell: false });
+		assert.deepEqual(argumentsList.slice(0, 2), ['-c', `safe.directory=${path.resolve(repositoryRoot)}`]);
+		assert.deepEqual(invocation, { cwd: repositoryRoot, env: {}, shell: false });
 	}
 	for (const argumentsList of [['push'], [], ['status'], ['status', '--short', '--porcelain'], ['ls-files', ''], null]) {
 		assert.throws(() => canonicalEnvironmentGitArguments(repositoryRoot, argumentsList));
