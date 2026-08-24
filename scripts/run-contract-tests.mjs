@@ -19,6 +19,15 @@ export const environmentTest = 'tests/environment-contract.test.mjs';
 
 const safeFailure = (stage) => `Contract tests failed: ${stage}.\n`;
 const outputRelativePath = (testPath) => path.join('.npm-cache', 'contract-tests', `${path.basename(testPath, '.ts')}.mjs`);
+export const canonicalChildPlan = Object.freeze([
+	Object.freeze({ testPath: environmentTest, failureCode: 'ENVIRONMENT_TESTS_INVALID' }),
+	Object.freeze({ testPath: outputRelativePath(canonicalTypeScriptTests[0]), failureCode: 'PUBLICATION_DOMAIN_TESTS_INVALID' }),
+	Object.freeze({ testPath: outputRelativePath(canonicalTypeScriptTests[1]), failureCode: 'PUBLICATION_STATE_MACHINE_TESTS_INVALID' }),
+	Object.freeze({ testPath: outputRelativePath(canonicalTypeScriptTests[2]), failureCode: 'INTEGRATION_TESTS_INVALID' }),
+]);
+const childFailures = Object.freeze(Object.fromEntries(
+	canonicalChildPlan.map(({ failureCode }) => [failureCode, Object.freeze({ failureCode })]),
+));
 
 export function childArguments(testPath) {
 	return [
@@ -44,15 +53,26 @@ async function bundleCanonicalTests() {
 	});
 }
 
-async function executeCanonicalTests() {
-	const testPaths = [environmentTest, ...canonicalTypeScriptTests.map(outputRelativePath)];
-	for (const testPath of testPaths) {
-		await executeFile(process.execPath, childArguments(testPath), {
-			cwd: repositoryRoot,
-			env: {},
-			shell: false,
-		});
+export async function executeCanonicalTests({ execute = executeFile } = {}) {
+	for (const { testPath, failureCode } of canonicalChildPlan) {
+		try {
+			await execute(process.execPath, childArguments(testPath), {
+				cwd: repositoryRoot,
+				env: {},
+				shell: false,
+			});
+		} catch {
+			return childFailures[failureCode];
+		}
 	}
+	return null;
+}
+
+function failureCodeFor(result) {
+	for (const [failureCode, failure] of Object.entries(childFailures)) {
+		if (result === failure) return failureCode;
+	}
+	return null;
 }
 
 export async function main(argumentsList = process.argv.slice(2), dependencies = { bundle: bundleCanonicalTests, execute: executeCanonicalTests }) {
@@ -67,7 +87,11 @@ export async function main(argumentsList = process.argv.slice(2), dependencies =
 		return 1;
 	}
 	try {
-		await dependencies.execute();
+		const result = await dependencies.execute();
+		if (result !== null && result !== undefined) {
+			process.stderr.write(safeFailure(failureCodeFor(result) ?? 'TESTS_INVALID'));
+			return 1;
+		}
 	} catch {
 		process.stderr.write(safeFailure('TESTS_INVALID'));
 		return 1;
