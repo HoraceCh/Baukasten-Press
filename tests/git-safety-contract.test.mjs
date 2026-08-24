@@ -111,17 +111,22 @@ test('repository audit is read-only, redacts command failures, and tolerates an 
 test('nested Git-safety environment validation accepts only the minimized exact CI identity', async () => {
 	const environmentAuthority = parseStrictJson(await readFile(path.join(repositoryRoot, 'config', 'environment-contract.json'), 'utf8'));
 	const environment = { ...environmentAuthority.environment.repository.ciRootPolicy.metadata, GITHUB_WORKSPACE: repositoryRoot };
-	let lsFilesCalls = 0;
-	const run = async (command, args) => {
-		if (command === 'npm') return environmentAuthority.environment.toolchain.npm;
-		if (args.includes('--show-toplevel')) return repositoryRoot;
-		if (args.includes('status')) return '';
-		if (args.includes('ls-files')) return (lsFilesCalls++ === 0 ? ['.github/workflows/pr-validation.yml'] : ['AGENTS.md', 'version-bump.mjs', '.github/workflows/pr-validation.yml']).join('\n');
-		if (args.includes('remote.origin.url')) return `https://github.com/${environmentAuthority.environment.repository.slug}.git`;
-		const error = new Error('not configured'); error.code = 1; throw error;
+	const exactCiRun = () => {
+		let lsFilesCalls = 0;
+		return async (command, args) => {
+			if (command === 'npm') return environmentAuthority.environment.toolchain.npm;
+			if (args.includes('--show-toplevel')) return repositoryRoot;
+			if (args.includes('status')) return '';
+			if (args.includes('ls-files')) return (lsFilesCalls++ === 0 ? ['.github/workflows/pr-validation.yml'] : ['AGENTS.md', 'version-bump.mjs', '.github/workflows/pr-validation.yml']).join('\n');
+			if (args.includes('remote.origin.url')) return `https://github.com/${environmentAuthority.environment.repository.slug}.git`;
+			const error = new Error('not configured'); error.code = 1; throw error;
+		};
 	};
-	assert.equal(await auditRepository({ environment, run }), null);
-	assert.equal(await auditRepository({ environment: { ...environment, GITHUB_BASE_REF: 'release' }, run }), 'ENVIRONMENT_CONTRACT_INVALID');
+	const validRun = exactCiRun();
+	assert.equal(await auditRepository({ environment, environmentRun: validRun, run: validRun }), null);
+	assert.equal(await auditRepository({ environment: { ...environment, GITHUB_BASE_REF: 'release' }, environmentRun: exactCiRun(), run: exactCiRun() }), 'ENVIRONMENT_CONTRACT_INVALID');
+	const failure = async () => { const error = new Error('post-environment failure'); error.code = 'EPERM'; throw error; };
+	assert.equal(await auditRepository({ environment, environmentRun: exactCiRun(), run: failure }), 'COMMAND_FAILED');
 });
 
 test('repository audit rejects wildcard OpenCode Git permissions without exposing configuration', async () => {

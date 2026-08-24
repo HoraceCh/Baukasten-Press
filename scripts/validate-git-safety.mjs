@@ -184,15 +184,16 @@ export async function auditIndirectCallers(paths, { root = repositoryRoot, readT
 	return null;
 }
 
-export async function auditRepository({ root = repositoryRoot, readText = (file) => readFile(file, 'utf8'), readDirectory, environment = deliveryEnvironment(process.env), run } = {}) {
+export async function auditRepository({ root = repositoryRoot, readText = (file) => readFile(file, 'utf8'), readDirectory, environment = deliveryEnvironment(process.env), environmentRun, run } = {}) {
 	let policyText; let environmentText; let exampleText; let packageText;
 	try { [policyText, environmentText, exampleText, packageText] = await Promise.all([readText(path.join(root, 'config', 'git-safety-contract.json')), readText(path.join(root, 'config', 'environment-contract.json')), readText(path.join(root, 'config', 'environment.example.json')), readText(path.join(root, 'package.json'))]); } catch { return fail('POLICY_READ_FAILED'); }
 	let policy; let manifest;
 	try { policy = parseStrictJson(policyText); parseStrictJson(environmentText); parseStrictJson(exampleText); manifest = parseStrictJson(packageText); } catch { return fail('POLICY_INVALID'); }
 	if (validatePolicy(policy)) return fail('POLICY_INVALID');
-	run ??= (command, args) => executeFile(command, canonicalValidatorGitArguments(root, args), { cwd: root, shell: false, env: {} });
+	const canonicalRun = (command, args) => executeFile(command, canonicalValidatorGitArguments(root, args), { cwd: root, shell: false, env: {} });
+	run ??= canonicalRun;
 	const output = (result) => typeof result === 'string' ? result : result.stdout ?? '';
-	const ciGitRun = environment.CI === 'true' ? async (command, args) => output(await run(command, args)).trim() : undefined;
+	const ciGitRun = environment.CI === 'true' ? async (command, args) => output(await (environmentRun ?? canonicalRun)(command, args)).trim() : undefined;
 	if (await validateEnvironment({ authorityText: environmentText, configText: exampleText, root, currentDirectory: root, environment, readText, gitRun: ciGitRun })) return fail('ENVIRONMENT_CONTRACT_INVALID');
 	if (await auditPrValidationWorkflow({ root, readText, readDirectory })) return fail('POLICY_INVALID');
 	const scripts = auditPackageScripts(manifest); if (scripts) return scripts;
