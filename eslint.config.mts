@@ -31,7 +31,7 @@ export default defineConfig(
 	},
 	...obsidianmd.configs.recommended,
 	{
-		files: ['scripts/validate-agent-infrastructure.mjs', 'scripts/validate-environment.mjs', 'scripts/validate-skill-registry.mjs', 'scripts/validate-git-safety.mjs', 'scripts/run-contract-tests.mjs', 'tests/environment-contract.test.mjs', 'tests/git-safety-contract.test.mjs', 'tests/run-contract-tests.test.mjs'],
+		files: ['scripts/validate-agent-infrastructure.mjs', 'scripts/validate-environment.mjs', 'scripts/validate-opencode-governance.mjs', 'scripts/validate-skill-registry.mjs', 'scripts/validate-git-safety.mjs', 'scripts/run-contract-tests.mjs', 'tests/environment-contract.test.mjs', 'tests/opencode-governance.test.mjs', 'tests/git-safety-contract.test.mjs', 'tests/run-contract-tests.test.mjs'],
 		languageOptions: {
 			globals: globals.node,
 		},
@@ -47,7 +47,7 @@ export default defineConfig(
 		},
 	},
 	{
-		files: ['scripts/validate-git-safety.mjs', 'tests/git-safety-contract.test.mjs'],
+		files: ['scripts/validate-git-safety.mjs', 'scripts/validate-opencode-governance.mjs', 'tests/git-safety-contract.test.mjs', 'tests/opencode-governance.test.mjs'],
 		extends: [tseslint.configs.disableTypeChecked],
 		languageOptions: {
 			globals: globals.node,

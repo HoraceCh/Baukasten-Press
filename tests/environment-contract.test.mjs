@@ -12,6 +12,7 @@ const example = parseStrictJson(exampleText);
 const packageText = await readFile(path.join(repositoryRoot, 'package.json'), 'utf8');
 const lockTextV2 = await readFile(path.join(repositoryRoot, 'package-lock.json'), 'utf8');
 const ignoreTextV2 = await readFile(path.join(repositoryRoot, '.gitignore'), 'utf8');
+const opencodeTextV2 = await readFile(path.join(repositoryRoot, 'opencode.jsonc'), 'utf8');
 const sentinel = 'BAP41_SENTINEL_NEVER_ECHO';
 
 function cloneV2(value) { return JSON.parse(JSON.stringify(value)); }
@@ -19,7 +20,7 @@ function options(overrides = {}) {
 	const tracked = ['AGENTS.md', 'README.md', 'config/environment-contract.json'];
 	return {
 		authorityText, configText: exampleText, root: authority.environment.repository.root, environment: {}, nodeVersion: authority.environment.toolchain.node,
-		readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : lockTextV2,
+		readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2 : lockTextV2,
 		run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : args.includes('ls-files') ? tracked.join('\n') : `https://github.com/${authority.environment.repository.slug}.git`,
 		...overrides,
 	};
@@ -79,6 +80,10 @@ test('repository, lock, ignore, package mismatch, canaries, and override argumen
 	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : args.includes('ls-files') ? 'rogue.tmp' : `https://github.com/${authority.environment.repository.slug}` })), 'PATH_POLICY_INVALID');
 	assert.equal(await validateEnvironment(options({ configText: sentinel })), 'CONFIG_INVALID');
 	assert.equal(await validateEnvironment(options({ run: async (command, args) => args.includes('ls-files') ? Promise.reject(new Error(sentinel)) : command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : `https://github.com/${authority.environment.repository.slug}` })), 'COMMAND_FAILED');
+});
+
+test('OpenCode provider and external capability drift fails under the environment contract', async () => {
+	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2.replace('"webfetch": {"*": "deny"}', '"webfetch": {"*": "allow"}') : lockTextV2 })), 'OPENCODE_GOVERNANCE_INVALID');
 });
 
 test('documentation and script retain canonical authority and no command override surface', async () => {

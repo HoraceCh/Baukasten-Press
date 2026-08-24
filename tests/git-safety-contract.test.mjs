@@ -12,6 +12,7 @@ import { parseStrictJson } from '../scripts/validate-environment.mjs';
 const executeFile = promisify(execFile);
 const policy = parseStrictJson(await readFile(policyPath, 'utf8'));
 const packageText = await readFile(path.join(repositoryRoot, 'package.json'), 'utf8');
+const opencodeText = await readFile(path.join(repositoryRoot, 'opencode.jsonc'), 'utf8');
 const manifest = parseStrictJson(packageText);
 
 test('policy is exact, strict, and recognizes only the safe command forms', () => {
@@ -95,6 +96,11 @@ test('repository audit is read-only, redacts command failures, and tolerates an 
 		return { stdout: 'version-bump.mjs' };
 	} });
 	assert.equal(unsafeAlias, 'GIT_ALIAS_INVALID');
+});
+
+test('repository audit rejects wildcard OpenCode Git permissions without exposing configuration', async () => {
+	const result = await auditRepository({ readText: async (file) => file.endsWith('opencode.jsonc') ? opencodeText.replace('"rtk git status": "allow"', '"rtk git status*": "allow"') : readFile(file, 'utf8') });
+	assert.equal(result, 'ENVIRONMENT_CONTRACT_INVALID');
 });
 
 test('indirect caller audit denies undeclared or dynamic Git surfaces without exposing their text', async () => {

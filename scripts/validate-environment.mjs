@@ -4,12 +4,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
+import { validateOpenCodeGovernance } from './validate-opencode-governance.mjs';
+
 const executeFile = promisify(execFile);
 const scriptPath = fileURLToPath(import.meta.url);
 export const repositoryRoot = path.resolve(path.dirname(scriptPath), '..');
 const CONTRACT_PATH = path.join(repositoryRoot, 'config', 'environment-contract.json');
 const EXAMPLE_PATH = path.join(repositoryRoot, 'config', 'environment.example.json');
-const SAFE_CODES = new Set(['CONFIG_READ_FAILED', 'CONFIG_INVALID', 'CONFIG_SCHEMA_INVALID', 'ENVIRONMENT_VARIABLE_FORBIDDEN', 'REPOSITORY_ROOT_INVALID', 'REPOSITORY_CWD_INVALID', 'REPOSITORY_TOPLEVEL_INVALID', 'REPOSITORY_ORIGIN_INVALID', 'NODE_VERSION_INVALID', 'NPM_VERSION_INVALID', 'LOCKFILE_INVALID', 'PACKAGE_LOCK_MISMATCH', 'LOCKED_TOOL_INVALID', 'IGNORE_POLICY_INVALID', 'PATH_POLICY_INVALID', 'COMMAND_FAILED']);
+const SAFE_CODES = new Set(['CONFIG_READ_FAILED', 'CONFIG_INVALID', 'CONFIG_SCHEMA_INVALID', 'ENVIRONMENT_VARIABLE_FORBIDDEN', 'REPOSITORY_ROOT_INVALID', 'REPOSITORY_CWD_INVALID', 'REPOSITORY_TOPLEVEL_INVALID', 'REPOSITORY_ORIGIN_INVALID', 'NODE_VERSION_INVALID', 'NPM_VERSION_INVALID', 'LOCKFILE_INVALID', 'PACKAGE_LOCK_MISMATCH', 'LOCKED_TOOL_INVALID', 'IGNORE_POLICY_INVALID', 'PATH_POLICY_INVALID', 'OPENCODE_GOVERNANCE_INVALID', 'COMMAND_FAILED']);
 
 const exactKeys = (value, expected) => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === expected.length && expected.every((key) => Object.hasOwn(value, key));
 const emptyObject = (value) => exactKeys(value, []);
@@ -101,6 +103,7 @@ export async function validateEnvironment({ authorityText, configText, root = re
 	if (paths.ignoredRuntime.some((entry) => !ignored.has(entry))) return fail('IGNORE_POLICY_INVALID');
 	let tracked;
 	try { tracked = await run('git', ['ls-files']); } catch { return fail('COMMAND_FAILED'); }
+	if (await validateOpenCodeGovernance({ root, readText, presentTrackedOpenCodePaths: tracked.split(/\r?\n/).filter((entry) => entry.startsWith('.opencode/')) })) return fail('OPENCODE_GOVERNANCE_INVALID');
 	const approved = paths.tracked;
 	if (tracked.split(/\r?\n/).filter(Boolean).some((entry) => !approved.some((allowed) => allowed.endsWith('/') ? entry.startsWith(allowed) : entry === allowed))) return fail('PATH_POLICY_INVALID');
 	return null;

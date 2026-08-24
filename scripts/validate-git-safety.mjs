@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 import { parseStrictJson, repositoryRoot, validateEnvironment } from './validate-environment.mjs';
+import { validateOpenCodeGovernance } from './validate-opencode-governance.mjs';
 
 export { repositoryRoot };
 
@@ -160,6 +161,7 @@ export async function auditRepository({ root = repositoryRoot, readText = (file)
 	if (output(conditionalIncludes).trim()) return fail('GIT_INCLUDE_INVALID');
 	if (output(hooks).trim()) return fail('GIT_HOOK_INVALID');
 	const paths = output(tracked).split(/\r?\n/).filter(Boolean);
+	if (await validateOpenCodeGovernance({ root, readText, presentTrackedOpenCodePaths: paths.filter((entry) => entry.startsWith('.opencode/')) })) return fail('POLICY_INVALID');
 	if (paths.some((entry) => entry.startsWith('.npm-cache/') || entry === 'main.js') || !paths.includes('version-bump.mjs')) return fail('TRACKED_SURFACE_INVALID');
 	const auditPaths = [...new Set([...paths, 'scripts/validate-git-safety.mjs', 'tests/git-safety-contract.test.mjs'])];
 	const indirect = await auditIndirectCallers(auditPaths, { root, readText }); if (indirect) return indirect;

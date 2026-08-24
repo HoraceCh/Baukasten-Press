@@ -2,6 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateSkillRegistry } from './validate-skill-registry.mjs';
+import { validateOpenCodeGovernance } from './validate-opencode-governance.mjs';
 
 const EXPECTED_AGENTS = new Map([
 	['press_system_architect', { model: 'gpt-5.6-sol', reasoning: 'high', sandbox: 'read-only' }],
@@ -204,6 +205,9 @@ for (const pattern of ['~/.codex/agents', '~\\.codex\\agents', '$HOME/.codex/age
 
 const registryResult = await validateSkillRegistry(repositoryRoot);
 errors.push(...registryResult.errors);
+
+const opencodeResult = await validateOpenCodeGovernance({ root: repositoryRoot, requiredAbsentOpenCodePaths: ['.opencode/oh-my-openagent.jsonc'] });
+if (opencodeResult) errors.push(`OpenCode governance validation failed: ${opencodeResult}.`);
 
 if (errors.length > 0) {
 	console.error('Agent infrastructure validation failed:');
