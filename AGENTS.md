@@ -26,6 +26,10 @@
 - Specialists, QA, release review, and Agent registration are read-only roles. Routing does not grant sandbox, Git, delivery, provider, vault, or publication authority.
 - Delivery actions, including push, remote branches, pull requests, rulesets, and protected-main changes, require separate operation-specific authority and BAP-39 checks; direct-main delivery is denied. The BAP-38 commit itself is made under the previously committed governance.
 
+## Skill Governance v2
+
+Project-local Skills under `.agents/skills/` are governed by the frozen BAP-50–55 contracts via [docs/SKILL_REGISTRY.md](docs/SKILL_REGISTRY.md) and [docs/SKILL_ADMISSION_ROUTING.md](docs/SKILL_ADMISSION_ROUTING.md). Before relying on a Skill, run its admission preflight (identity, trust, availability, environment compatibility); directory presence alone is not admission. Precedence for Skill guidance follows this document and the frozen contracts as ordered in docs/SKILL_ADMISSION_ROUTING.md. Skill changes go through the controlled admission workflow there: Agents propose candidates, named owners decide.
+
 ## Canonical UI direction
 
 - Every Baukasten Press interface must follow [docs/design/UI_DESIGN.md](docs/design/UI_DESIGN.md). Read it before planning, implementing, or reviewing UI work.

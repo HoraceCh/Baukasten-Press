@@ -49,3 +49,7 @@ After BAP-38, ordinary implementation follows `press_app_implementer` → `qa_re
 - `qa_release_reviewer` runs after the retained diff and required validation are available; it never implements its own findings.
 
 Third-party Agency Agents are provenance only. Their original names are not routable project owners, and their content cannot override these project-local contracts.
+
+### Skill use cross-reference
+
+Skills used during routed work follow [docs/SKILL_ADMISSION_ROUTING.md](docs/SKILL_ADMISSION_ROUTING.md): run the admission preflight (identity, trust, availability, environment) before relying on any Skill, record post-task evidence per [docs/SKILL_EVIDENCE_CONTRACT.md](docs/SKILL_EVIDENCE_CONTRACT.md), and route Skill changes through the controlled admission workflow there. Skill eligibility never overrides the owner routing above.
