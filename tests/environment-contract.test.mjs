@@ -4,6 +4,7 @@ import test from 'node:test';
 import path from 'node:path';
 
 import { parseStrictJson, repositoryRoot, validateAuthority, validateEnvironment, validateExample } from '../scripts/validate-environment.mjs';
+import { validateOpenCodeConfigText } from '../scripts/validate-opencode-governance.mjs';
 
 const authorityText = await readFile(path.join(repositoryRoot, 'config', 'environment-contract.json'), 'utf8');
 const exampleText = await readFile(path.join(repositoryRoot, 'config', 'environment.example.json'), 'utf8');
@@ -21,6 +22,7 @@ function options(overrides = {}) {
 	return {
 		authorityText, configText: exampleText, root: authority.environment.repository.root, currentDirectory: authority.environment.repository.root, environment: {}, nodeVersion: authority.environment.toolchain.node,
 		readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2 : lockTextV2,
+		validateOpenCode: async ({ root, readText }) => validateOpenCodeConfigText(await readText(path.join(root, 'opencode.jsonc'))),
 		run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : args.includes('ls-files') ? tracked.join('\n') : `https://github.com/${authority.environment.repository.slug}.git`,
 		...overrides,
 	};
@@ -32,7 +34,6 @@ function ciOptions(overrides = {}) {
 	const tracked = ['AGENTS.md', 'README.md', 'config/environment-contract.json', '.github/workflows/pr-validation.yml'];
 	return options({
 		root, currentDirectory: root, environment,
-		validateOpenCode: async () => null,
 		run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? root : args.includes('status') ? '' : args.includes('ls-files') ? tracked.join('\n') : `https://github.com/${authority.environment.repository.slug}.git`,
 		...overrides,
 	});
