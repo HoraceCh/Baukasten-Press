@@ -19,7 +19,7 @@ function cloneV2(value) { return JSON.parse(JSON.stringify(value)); }
 function options(overrides = {}) {
 	const tracked = ['AGENTS.md', 'README.md', 'config/environment-contract.json'];
 	return {
-		authorityText, configText: exampleText, root: authority.environment.repository.root, environment: {}, nodeVersion: authority.environment.toolchain.node,
+		authorityText, configText: exampleText, root: authority.environment.repository.root, currentDirectory: authority.environment.repository.root, environment: {}, nodeVersion: authority.environment.toolchain.node,
 		readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2 : lockTextV2,
 		run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : args.includes('ls-files') ? tracked.join('\n') : `https://github.com/${authority.environment.repository.slug}.git`,
 		...overrides,
