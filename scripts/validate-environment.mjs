@@ -11,7 +11,7 @@ const scriptPath = fileURLToPath(import.meta.url);
 export const repositoryRoot = path.resolve(path.dirname(scriptPath), '..');
 const CONTRACT_PATH = path.join(repositoryRoot, 'config', 'environment-contract.json');
 const EXAMPLE_PATH = path.join(repositoryRoot, 'config', 'environment.example.json');
-const SAFE_CODES = new Set(['CONFIG_READ_FAILED', 'CONFIG_INVALID', 'CONFIG_SCHEMA_INVALID', 'ENVIRONMENT_VARIABLE_FORBIDDEN', 'REPOSITORY_ROOT_INVALID', 'REPOSITORY_CWD_INVALID', 'REPOSITORY_TOPLEVEL_INVALID', 'REPOSITORY_ORIGIN_INVALID', 'NODE_VERSION_INVALID', 'NPM_VERSION_INVALID', 'LOCKFILE_INVALID', 'PACKAGE_LOCK_MISMATCH', 'LOCKED_TOOL_INVALID', 'IGNORE_POLICY_INVALID', 'PATH_POLICY_INVALID', 'OPENCODE_GOVERNANCE_INVALID', 'COMMAND_FAILED']);
+const SAFE_CODES = new Set(['CONFIG_READ_FAILED', 'CONFIG_INVALID', 'CONFIG_SCHEMA_INVALID', 'ENVIRONMENT_VARIABLE_FORBIDDEN', 'CI_METADATA_INVALID', 'REPOSITORY_ROOT_INVALID', 'REPOSITORY_CWD_INVALID', 'REPOSITORY_TOPLEVEL_INVALID', 'REPOSITORY_ORIGIN_INVALID', 'CI_WORKSPACE_INVALID', 'CI_WORKTREE_INVALID', 'NODE_VERSION_INVALID', 'NPM_VERSION_INVALID', 'LOCKFILE_INVALID', 'PACKAGE_LOCK_MISMATCH', 'LOCKED_TOOL_INVALID', 'IGNORE_POLICY_INVALID', 'PATH_POLICY_INVALID', 'OPENCODE_GOVERNANCE_INVALID', 'COMMAND_FAILED']);
 
 const exactKeys = (value, expected) => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === expected.length && expected.every((key) => Object.hasOwn(value, key));
 const emptyObject = (value) => exactKeys(value, []);
@@ -19,6 +19,7 @@ const sameStrings = (actual, expected) => Array.isArray(actual) && actual.length
 const isStringList = (value) => Array.isArray(value) && value.length > 0 && value.every((entry) => typeof entry === 'string' && entry.length > 0) && new Set(value).size === value.length;
 const normalizePath = (value) => value.replaceAll('/', '\\').replace(/\\+$/, '').toLowerCase();
 const fail = (code) => SAFE_CODES.has(code) ? code : 'CONFIG_INVALID';
+const exactEntries = (value, expected) => exactKeys(value, Object.keys(expected)) && Object.entries(expected).every(([key, entry]) => value[key] === entry);
 
 /** JSON parser that rejects duplicate and escaped object member names. */
 export function parseStrictJson(text) {
@@ -41,7 +42,9 @@ export function validateAuthority(authority) {
 	if (!exactKeys(required, ['environment', 'repository', 'toolchain', 'paths', 'profile', 'capabilities']) || Object.values(required).some((keys) => !isStringList(keys))) return fail('CONFIG_SCHEMA_INVALID');
 	const environment = authority.environment;
 	if (!exactKeys(environment, required.environment) || !emptyObject(environment.optional) || !emptyObject(environment.default) || !emptyObject(environment.envVariables) || !emptyObject(environment.secrets)) return fail('CONFIG_SCHEMA_INVALID');
-	if (!exactKeys(environment.repository, required.repository) || !Object.values(environment.repository).every((value) => typeof value === 'string' && value.length > 0)) return fail('CONFIG_SCHEMA_INVALID');
+	if (!exactKeys(environment.repository, required.repository) || typeof environment.repository.root !== 'string' || environment.repository.root.length === 0 || typeof environment.repository.slug !== 'string' || environment.repository.slug.length === 0) return fail('CONFIG_SCHEMA_INVALID');
+	const ciRootPolicy = environment.repository.ciRootPolicy;
+	if (!exactKeys(ciRootPolicy, ['metadata', 'trackedAllowlist']) || !exactEntries(ciRootPolicy.metadata, { CI: 'true', GITHUB_ACTIONS: 'true', GITHUB_REPOSITORY: environment.repository.slug, GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main', RUNNER_ENVIRONMENT: 'github-hosted', RUNNER_OS: 'Linux' }) || !sameStrings(ciRootPolicy.trackedAllowlist, ['.github/workflows/pr-validation.yml'])) return fail('CONFIG_SCHEMA_INVALID');
 	const toolchain = environment.toolchain;
 	if (!exactKeys(toolchain, required.toolchain) || typeof toolchain.node !== 'string' || typeof toolchain.npm !== 'string' || typeof toolchain.packageManager !== 'string' || typeof toolchain.lockfile !== 'string' || !Number.isInteger(toolchain.lockfileVersion) || !isStringList(toolchain.requiredLockedPackages)) return fail('CONFIG_SCHEMA_INVALID');
 	if (!exactKeys(environment.paths, required.paths) || !isStringList(environment.paths.tracked) || !isStringList(environment.paths.ignoredRuntime)) return fail('CONFIG_SCHEMA_INVALID');
@@ -55,6 +58,10 @@ export function validateAuthority(authority) {
 
 export function validateExample(example, authority) {
 	return exactKeys(example, authority.configSchema.required) && example.contractVersion === authority.contractVersion && typeof example.environment === 'string' && Object.hasOwn(authority.environment.profiles, example.environment) ? null : fail('CONFIG_SCHEMA_INVALID');
+}
+
+function ciMetadataMatches(environment, policy) {
+	return Object.entries(policy.metadata).every(([name, value]) => environment[name] === value) && typeof environment.GITHUB_WORKSPACE === 'string' && environment.GITHUB_WORKSPACE.length > 0;
 }
 
 async function runExactTool(command, argumentsList, root) {
@@ -77,19 +84,24 @@ function sameDependencySection(left, right, name) {
 	return exactKeys(a, Object.keys(b)) && Object.keys(a).every((key) => a[key] === b[key]);
 }
 
-export async function validateEnvironment({ authorityText, configText, root = repositoryRoot, currentDirectory = process.cwd(), environment = process.env, nodeVersion = process.versions.node, readText = (file) => readFile(file, 'utf8'), run = (command, argumentsList) => runExactTool(command, argumentsList, root) } = {}) {
+export async function validateEnvironment({ authorityText, configText, root = repositoryRoot, currentDirectory = process.cwd(), environment = process.env, nodeVersion = process.versions.node, readText = (file) => readFile(file, 'utf8'), validateOpenCode = validateOpenCodeGovernance, run = (command, argumentsList) => runExactTool(command, argumentsList, root), gitRun } = {}) {
 	if (Object.keys(environment).some((name) => /^baukasten_press_/i.test(name))) return fail('ENVIRONMENT_VARIABLE_FORBIDDEN');
 	let authority; let example;
 	try { authority = parseStrictJson(authorityText); example = parseStrictJson(configText); } catch { return fail('CONFIG_INVALID'); }
 	const authorityResult = validateAuthority(authority); if (authorityResult) return authorityResult;
 	const exampleResult = validateExample(example, authority); if (exampleResult) return exampleResult;
 	const { repository, toolchain, paths } = authority.environment;
-	if (normalizePath(root) !== normalizePath(repository.root) || normalizePath(repositoryRoot) !== normalizePath(repository.root)) return fail('REPOSITORY_ROOT_INVALID');
-	if (normalizePath(currentDirectory) !== normalizePath(repository.root)) return fail('REPOSITORY_CWD_INVALID');
+	const ci = ciMetadataMatches(environment, repository.ciRootPolicy);
+	if (!ci && Object.keys(environment).some((name) => ['CI', 'GITHUB_ACTIONS', 'GITHUB_REPOSITORY', 'GITHUB_EVENT_NAME', 'GITHUB_BASE_REF', 'RUNNER_ENVIRONMENT', 'RUNNER_OS', 'GITHUB_WORKSPACE'].includes(name))) return fail('CI_METADATA_INVALID');
+	if (!ci && normalizePath(root) !== normalizePath(repository.root)) return fail('REPOSITORY_ROOT_INVALID');
+	if (!ci && normalizePath(currentDirectory) !== normalizePath(repository.root)) return fail('REPOSITORY_CWD_INVALID');
+	if (ci && (normalizePath(environment.GITHUB_WORKSPACE) !== normalizePath(root) || normalizePath(currentDirectory) !== normalizePath(root))) return fail('CI_WORKSPACE_INVALID');
 	if (nodeVersion !== toolchain.node) return fail('NODE_VERSION_INVALID');
-	let origin; let topLevel; let npmVersion;
-	try { [origin, topLevel, npmVersion] = await Promise.all([run('git', ['config', '--get', 'remote.origin.url']), run('git', ['rev-parse', '--show-toplevel']), run('npm', ['--version'])]); } catch { return fail('COMMAND_FAILED'); }
-	if (normalizePath(topLevel) !== normalizePath(repository.root)) return fail('REPOSITORY_TOPLEVEL_INVALID');
+	const invokeGit = gitRun ?? run;
+	let origin; let topLevel; let npmVersion; let status;
+	try { [origin, topLevel, npmVersion, status] = await Promise.all([invokeGit('git', ['config', '--get', 'remote.origin.url']), invokeGit('git', ['rev-parse', '--show-toplevel']), run('npm', ['--version']), invokeGit('git', ['status', '--short'])]); } catch { return fail('COMMAND_FAILED'); }
+	if (normalizePath(topLevel) !== normalizePath(ci ? root : repository.root)) return fail('REPOSITORY_TOPLEVEL_INVALID');
+	if (ci && status.trim() !== '') return fail('CI_WORKTREE_INVALID');
 	if (!validOrigin(origin, repository.slug)) return fail('REPOSITORY_ORIGIN_INVALID');
 	if (npmVersion !== toolchain.npm) return fail('NPM_VERSION_INVALID');
 	let packageText; let lockText; let ignoreText;
@@ -102,8 +114,9 @@ export async function validateEnvironment({ authorityText, configText, root = re
 	const ignored = new Set(ignoreText.split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith('#')));
 	if (paths.ignoredRuntime.some((entry) => !ignored.has(entry))) return fail('IGNORE_POLICY_INVALID');
 	let tracked;
-	try { tracked = await run('git', ['ls-files']); } catch { return fail('COMMAND_FAILED'); }
-	if (await validateOpenCodeGovernance({ root, readText, presentTrackedOpenCodePaths: tracked.split(/\r?\n/).filter((entry) => entry.startsWith('.opencode/')) })) return fail('OPENCODE_GOVERNANCE_INVALID');
+	try { tracked = await invokeGit('git', ['ls-files']); } catch { return fail('COMMAND_FAILED'); }
+	if (await validateOpenCode({ root, readText, presentTrackedOpenCodePaths: tracked.split(/\r?\n/).filter((entry) => entry.startsWith('.opencode/')) })) return fail('OPENCODE_GOVERNANCE_INVALID');
+	if (tracked.split(/\r?\n/).filter((entry) => entry.startsWith('.github/')).some((entry) => !repository.ciRootPolicy.trackedAllowlist.includes(entry))) return fail('PATH_POLICY_INVALID');
 	const approved = paths.tracked;
 	if (tracked.split(/\r?\n/).filter(Boolean).some((entry) => !approved.some((allowed) => allowed.endsWith('/') ? entry.startsWith(allowed) : entry === allowed))) return fail('PATH_POLICY_INVALID');
 	return null;

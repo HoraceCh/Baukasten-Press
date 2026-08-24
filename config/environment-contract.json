@@ -3,16 +3,31 @@
   "configSchema": {"required": ["contractVersion", "environment"], "optional": [], "defaults": {}, "environmentVariables": [], "secrets": []},
   "requiredConfigKeys": {
     "environment": ["repository", "toolchain", "paths", "optional", "default", "envVariables", "secrets", "profileNames", "profiles"],
-    "repository": ["root", "slug"],
+    "repository": ["root", "slug", "ciRootPolicy"],
     "toolchain": ["node", "npm", "packageManager", "lockfile", "lockfileVersion", "requiredLockedPackages"],
     "paths": ["tracked", "ignoredRuntime"],
     "profile": ["responsibility", "capabilities"],
     "capabilities": ["providerAccess", "publicationAccess", "credentialAccess", "credentialStorage", "networkAccess", "vaultAccess", "vaultWrites", "externalProductionWrites"]
   },
   "environment": {
-    "repository": {"root": "F:\\Projects\\Baukasten Press", "slug": "HoraceCh/Baukasten-Press"},
+    "repository": {
+      "root": "F:\\Projects\\Baukasten Press",
+      "slug": "HoraceCh/Baukasten-Press",
+      "ciRootPolicy": {
+        "metadata": {
+          "CI": "true",
+          "GITHUB_ACTIONS": "true",
+          "GITHUB_REPOSITORY": "HoraceCh/Baukasten-Press",
+          "GITHUB_EVENT_NAME": "pull_request",
+          "GITHUB_BASE_REF": "main",
+          "RUNNER_ENVIRONMENT": "github-hosted",
+          "RUNNER_OS": "Linux"
+        },
+        "trackedAllowlist": [".github/workflows/pr-validation.yml"]
+      }
+    },
     "toolchain": {"node": "24.14.1", "npm": "11.14.1", "packageManager": "npm", "lockfile": "package-lock.json", "lockfileVersion": 3, "requiredLockedPackages": ["esbuild", "typescript", "eslint"]},
-    "paths": {"tracked": [".agents/", ".codex/", ".editorconfig", ".gitignore", ".npmrc", ".opencode/", ".serena/", "AGENTS.md", "README.md", "config/", "docs/", "opencode.jsonc", "scripts/", "src/", "tests/", "manifest.json", "package.json", "package-lock.json", "tsconfig.json", "eslint.config.mts", "esbuild.config.mjs", "styles.css", "versions.json", "version-bump.mjs"], "ignoredRuntime": ["data.json", "node_modules/", ".npm-cache/", "main.js", "*.map"]},
+    "paths": {"tracked": [".agents/", ".codex/", ".editorconfig", ".github/workflows/pr-validation.yml", ".gitignore", ".npmrc", ".opencode/", ".serena/", "AGENTS.md", "README.md", "config/", "docs/", "opencode.jsonc", "scripts/", "src/", "tests/", "manifest.json", "package.json", "package-lock.json", "tsconfig.json", "eslint.config.mts", "esbuild.config.mjs", "styles.css", "versions.json", "version-bump.mjs"], "ignoredRuntime": ["data.json", "node_modules/", ".npm-cache/", "main.js", "*.map"]},
     "optional": {}, "default": {}, "envVariables": {}, "secrets": {}, "profileNames": ["local", "test", "production-like"],
     "profiles": {
       "local": {"responsibility": "local development without external authority", "capabilities": {"providerAccess": false, "publicationAccess": false, "credentialAccess": false, "credentialStorage": false, "networkAccess": false, "vaultAccess": false, "vaultWrites": false, "externalProductionWrites": false}},

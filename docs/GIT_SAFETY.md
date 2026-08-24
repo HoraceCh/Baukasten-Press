@@ -14,6 +14,8 @@ Commit commands fail closed when they use `-a`/`--all`, amend, no-verify, allow-
 
 Delivery mutation is separately human-authorized, operation-specific work. It includes push, remote-branch, pull-request, ruleset, and branch-protection operations; direct-main delivery is denied. BAP-39 supplies its own checks and does not inherit delivery authority from this document.
 
+The sole pull-request workflow is validated as an exact, pinned, least-privilege delivery surface. Its GitHub-hosted execution metadata is environment identity only: it does not widen Git, provider, credential, network, publication, vault, or external-write authority. Package installation and action setup there are ephemeral validation bootstrap, not a second authority or validation truth source.
+
 Destructive/history-rewriting and repository-topology commands are prohibited, including reset, clean, restore, checkout, stash, rebase, cherry-pick, force/history filters, rm/mv, ref/object mutation, reflog/gc/prune, init/clone, submodule, and worktree commands. A blocked or ambiguous command must not be substituted with a wrapper or script.
 
 ## Indirect callers and validation

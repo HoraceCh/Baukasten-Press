@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-import { auditIndirectCallers, auditPackageScripts, auditRepository, authorizeDeliveryMutation, authorizeImplementationMutation, canonicalValidatorGitArguments, classifyGitArguments, policyPath, repositoryRoot, validateExactRelativePath, validatePolicy } from '../scripts/validate-git-safety.mjs';
+import { auditIndirectCallers, auditPackageScripts, auditPrValidationWorkflow, auditRepository, authorizeDeliveryMutation, authorizeImplementationMutation, canonicalValidatorGitArguments, classifyGitArguments, policyPath, repositoryRoot, validateExactRelativePath, validatePolicy } from '../scripts/validate-git-safety.mjs';
 import { parseStrictJson } from '../scripts/validate-environment.mjs';
 
 const executeFile = promisify(execFile);
@@ -79,6 +79,16 @@ test('package has no lifecycle or hidden Git/evaluator mutation and retains the 
 	assert.equal(auditPackageScripts(version), 'PACKAGE_SCRIPT_INVALID');
 });
 
+test('the sole PR workflow is pinned, least-privilege, and rejects structural or command drift', async () => {
+	assert.equal(await auditPrValidationWorkflow(), null);
+	const workflowPath = path.join(repositoryRoot, '.github', 'workflows', 'pr-validation.yml');
+	const workflow = await readFile(workflowPath, 'utf8');
+	const readDirectory = async () => [{ name: 'pr-validation.yml', isFile: () => true }];
+	for (const changed of [workflow.replace('pull_request:', 'push:'), workflow.replace('branches:\n      - main', 'branches:\n      - release'), workflow.replace('contents: read', 'contents: write'), workflow.replace('ubuntu-24.04', 'ubuntu-latest'), workflow.replace('npm ci --no-audit --no-fund', 'npm ci'), workflow.replace('npm run validate', 'npm run typecheck'), `${workflow}\n# drift\n`]) assert.equal(await auditPrValidationWorkflow({ readDirectory, readText: async () => changed }), 'POLICY_INVALID');
+	assert.equal(await auditPrValidationWorkflow({ readDirectory: async () => [{ name: 'pr-validation.yml', isFile: () => true }, { name: 'other.yml', isFile: () => true }], readText: async () => workflow }), 'POLICY_INVALID');
+	assert.equal(await auditPrValidationWorkflow({ readDirectory: async () => [{ name: 'pr-validation.yml', isFile: () => false }], readText: async () => workflow }), 'POLICY_INVALID');
+});
+
 test('repository audit is read-only, redacts command failures, and tolerates an unrelated dirty worktree', async () => {
 	assert.equal(await auditRepository(), null);
 	const result = await auditRepository({ readText: async () => { throw new Error('BAP38_SECRET_NEVER_ECHO'); } });
@@ -98,6 +108,22 @@ test('repository audit is read-only, redacts command failures, and tolerates an 
 	assert.equal(unsafeAlias, 'GIT_ALIAS_INVALID');
 });
 
+test('nested Git-safety environment validation accepts only the minimized exact CI identity', async () => {
+	const environmentAuthority = parseStrictJson(await readFile(path.join(repositoryRoot, 'config', 'environment-contract.json'), 'utf8'));
+	const environment = { ...environmentAuthority.environment.repository.ciRootPolicy.metadata, GITHUB_WORKSPACE: repositoryRoot };
+	let lsFilesCalls = 0;
+	const run = async (command, args) => {
+		if (command === 'npm') return environmentAuthority.environment.toolchain.npm;
+		if (args.includes('--show-toplevel')) return repositoryRoot;
+		if (args.includes('status')) return '';
+		if (args.includes('ls-files')) return (lsFilesCalls++ === 0 ? ['.github/workflows/pr-validation.yml'] : ['AGENTS.md', 'version-bump.mjs', '.github/workflows/pr-validation.yml']).join('\n');
+		if (args.includes('remote.origin.url')) return `https://github.com/${environmentAuthority.environment.repository.slug}.git`;
+		const error = new Error('not configured'); error.code = 1; throw error;
+	};
+	assert.equal(await auditRepository({ environment, run }), null);
+	assert.equal(await auditRepository({ environment: { ...environment, GITHUB_BASE_REF: 'release' }, run }), 'ENVIRONMENT_CONTRACT_INVALID');
+});
+
 test('repository audit rejects wildcard OpenCode Git permissions without exposing configuration', async () => {
 	const result = await auditRepository({ readText: async (file) => file.endsWith('opencode.jsonc') ? opencodeText.replace('"rtk git status": "allow"', '"rtk git status*": "allow"') : readFile(file, 'utf8') });
 	assert.equal(result, 'ENVIRONMENT_CONTRACT_INVALID');
@@ -112,6 +138,7 @@ test('indirect caller audit denies undeclared or dynamic Git surfaces without ex
 	const fixtureText = await readFile(path.join(repositoryRoot, 'tests', 'git-safety-contract.test.mjs'), 'utf8');
 	assert.equal(await auditIndirectCallers(['tests/git-safety-contract.test.mjs'], { readText: async () => `${fixtureText}\n${'executeFile'}('git', ['push'])` }), 'INDIRECT_CALLER_INVALID');
 	assert.equal(await auditIndirectCallers(['tests/git-safety-contract.test.mjs'], { readText: async () => `${fixtureText}\n${'run'}(['push'])` }), 'INDIRECT_CALLER_INVALID');
+	assert.equal(await auditIndirectCallers(['scripts/validate-environment.mjs'], { readText: async () => `${await readFile(path.join(repositoryRoot, 'scripts', 'validate-environment.mjs'), 'utf8')}\n${'invokeGit'}('git', ['push'])` }), 'INDIRECT_CALLER_INVALID');
 	assert.equal(await auditIndirectCallers(['tests/git-safety-contract.test.mjs'], { readText: async () => `${fixtureText}\n${'run'}(['-C', repositoryRoot, 'reset', '--hard'])` }), 'INDIRECT_CALLER_INVALID');
 });
 

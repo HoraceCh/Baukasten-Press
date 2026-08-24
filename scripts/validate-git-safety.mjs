@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { lstat, readFile, realpath } from 'node:fs/promises';
+import { lstat, readFile, readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
@@ -20,9 +20,56 @@ const expectedProhibitedCommands = ['reset', 'clean', 'restore', 'checkout', 'st
 const expectedProhibitedArguments = ['-C', '--git-dir', '--work-tree', '-c', '--intent-to-add', '-N', '--all', '-a', '--amend', '--no-verify', '--allow-empty', '--fixup', '--squash', '-S', '--gpg-sign'];
 const expectedIndirectCallers = ['scripts/validate-environment.mjs', 'scripts/validate-git-safety.mjs', 'tests/git-safety-contract.test.mjs'];
 const ignoredPathPatterns = Object.freeze(['.vscode/', '.idea/', '.npm-cache/', 'node_modules/', 'data.json', 'main.js', '.DS_Store', 'Thumbs.db']);
+const prWorkflowDirectory = path.join('.github', 'workflows');
+const prWorkflowName = 'pr-validation.yml';
+const expectedPrWorkflow = `name: PR validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-validation-${'${{ github.event.pull_request.number }}'}
+  cancel-in-progress: true
+
+jobs:
+  validation:
+    name: Unified validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.14.1
+          check-latest: false
+          package-manager-cache: false
+      - run: npm install --global npm@11.14.1 --ignore-scripts --no-audit --no-fund
+      - run: npm --version
+      - run: npm ci --no-audit --no-fund
+      - run: npm run validate
+`;
 const equalStrings = (value, expected) => Array.isArray(value) && value.length === expected.length && value.every((entry, index) => entry === expected[index]);
 const exactKeys = (value, expected) => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === expected.length && expected.every((key) => Object.hasOwn(value, key));
 const fail = (code) => safeFailureCodes.has(code) ? code : 'POLICY_INVALID';
+
+function deliveryEnvironment(environment) {
+	const names = ['CI', 'GITHUB_ACTIONS', 'GITHUB_REPOSITORY', 'GITHUB_EVENT_NAME', 'GITHUB_BASE_REF', 'RUNNER_ENVIRONMENT', 'RUNNER_OS', 'GITHUB_WORKSPACE'];
+	return Object.fromEntries([...names, ...Object.keys(environment).filter((name) => /^baukasten_press_/i.test(name))].filter((name, index, all) => all.indexOf(name) === index && environment[name] !== undefined).map((name) => [name, environment[name]]));
+}
+
+export async function auditPrValidationWorkflow({ root = repositoryRoot, readText = (file) => readFile(file, 'utf8'), readDirectory = (directory) => readdir(directory, { withFileTypes: true }) } = {}) {
+	let entries; let workflow;
+	try { entries = await readDirectory(path.join(root, prWorkflowDirectory)); workflow = await readText(path.join(root, prWorkflowDirectory, prWorkflowName)); } catch { return fail('POLICY_INVALID'); }
+	if (!Array.isArray(entries) || entries.length !== 1 || entries[0]?.name !== prWorkflowName || (entries[0]?.isFile && !entries[0].isFile()) || workflow !== expectedPrWorkflow) return fail('POLICY_INVALID');
+	return null;
+}
 
 export function validatePolicy(policy) {
 	if (!exactKeys(policy, expectedPolicyKeys) || policy.contractVersion !== '1.0' || policy.repositoryAuthority !== 'config/environment-contract.json' || policy.transport !== 'rtk') return fail('POLICY_INVALID');
@@ -100,7 +147,7 @@ const internalGitQueries = new Set([
 	'config\u0000--get-regexp\u0000^includeIf\\.',
 	'config\u0000--get\u0000core.hooksPath',
 ]);
-const literalArray = (source) => [...source.matchAll(/run\(\s*['"]git['"]\s*,\s*(\[(?:\s*['"][^'"]*['"]\s*,?\s*)*\])/g)].map((match) => JSON.parse(match[1].replaceAll("'", '"')));
+const literalArray = (source) => [...source.matchAll(/(?:run|invokeGit)\(\s*['"]git['"]\s*,\s*(\[(?:\s*['"][^'"]*['"]\s*,?\s*)*\])/g)].map((match) => JSON.parse(match[1].replaceAll("'", '"')));
 const executableSurface = (entry) => entry.endsWith('.mjs') && (!entry.includes('/') || entry.startsWith('scripts/') || entry.startsWith('tests/'));
 const fixtureInvocationCounts = new Map([['init', 1], ['config\u0000user.email\u0000fixture@example.invalid', 1], ['config\u0000user.name\u0000BAP-38 fixture', 1], ['add\u0000owned.txt', 2], ['add\u0000unrelated.txt', 1], ['commit\u0000-m\u0000test: create fixture', 1], ['commit\u0000-m\u0000test: stage exact path', 1], ['show\u0000--format=\u0000--name-only\u0000HEAD', 1], ['status\u0000--short', 2]]);
 
@@ -118,7 +165,7 @@ export async function auditIndirectCallers(paths, { root = repositoryRoot, readT
 		try { text = await readText(path.join(root, entry)); } catch { return fail('INDIRECT_CALLER_INVALID'); }
 		const executionText = text.replace(/readText:\s*async\s*\(\)\s*=>\s*(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '');
 		const calls = literalArray(executionText);
-		const hasDirectGit = /(?:run|execFile|executeFile)\(\s*['"]git['"]/.test(executionText);
+		const hasDirectGit = /(?:run|invokeGit|execFile|executeFile)\(\s*['"]git['"]/.test(executionText);
 		const fixtureWrapper = entry === 'tests/git-safety-contract.test.mjs' && executionText.includes("executeFile('git', args, { cwd: fixture, shell: false") && executionText.includes("mkdtemp(path.join(tmpdir(), 'bap-38-git-safety-'))");
 		if (!hasDirectGit && !fixtureWrapper) continue;
 		if (!expectedIndirectCallers.includes(entry)) return fail('INDIRECT_CALLER_INVALID');
@@ -137,16 +184,18 @@ export async function auditIndirectCallers(paths, { root = repositoryRoot, readT
 	return null;
 }
 
-export async function auditRepository({ root = repositoryRoot, readText = (file) => readFile(file, 'utf8'), run } = {}) {
+export async function auditRepository({ root = repositoryRoot, readText = (file) => readFile(file, 'utf8'), readDirectory, environment = deliveryEnvironment(process.env), run } = {}) {
 	let policyText; let environmentText; let exampleText; let packageText;
 	try { [policyText, environmentText, exampleText, packageText] = await Promise.all([readText(path.join(root, 'config', 'git-safety-contract.json')), readText(path.join(root, 'config', 'environment-contract.json')), readText(path.join(root, 'config', 'environment.example.json')), readText(path.join(root, 'package.json'))]); } catch { return fail('POLICY_READ_FAILED'); }
 	let policy; let manifest;
 	try { policy = parseStrictJson(policyText); parseStrictJson(environmentText); parseStrictJson(exampleText); manifest = parseStrictJson(packageText); } catch { return fail('POLICY_INVALID'); }
 	if (validatePolicy(policy)) return fail('POLICY_INVALID');
-	if (await validateEnvironment({ authorityText: environmentText, configText: exampleText, root, currentDirectory: root, environment: {}, readText })) return fail('ENVIRONMENT_CONTRACT_INVALID');
-	const scripts = auditPackageScripts(manifest); if (scripts) return scripts;
 	run ??= (command, args) => executeFile(command, canonicalValidatorGitArguments(root, args), { cwd: root, shell: false, env: {} });
 	const output = (result) => typeof result === 'string' ? result : result.stdout ?? '';
+	const ciGitRun = environment.CI === 'true' ? async (command, args) => output(await run(command, args)).trim() : undefined;
+	if (await validateEnvironment({ authorityText: environmentText, configText: exampleText, root, currentDirectory: root, environment, readText, gitRun: ciGitRun })) return fail('ENVIRONMENT_CONTRACT_INVALID');
+	if (await auditPrValidationWorkflow({ root, readText, readDirectory })) return fail('POLICY_INVALID');
+	const scripts = auditPackageScripts(manifest); if (scripts) return scripts;
 	const optionalGitConfig = async (args, failureCode) => {
 		try { return await run('git', args); } catch (error) { return error?.code === 1 ? { stdout: '' } : failureCode; }
 	};

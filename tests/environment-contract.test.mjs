@@ -26,6 +26,18 @@ function options(overrides = {}) {
 	};
 }
 
+function ciOptions(overrides = {}) {
+	const root = '/home/runner/work/Baukasten-Press/Baukasten-Press';
+	const environment = { ...authority.environment.repository.ciRootPolicy.metadata, GITHUB_WORKSPACE: root };
+	const tracked = ['AGENTS.md', 'README.md', 'config/environment-contract.json', '.github/workflows/pr-validation.yml'];
+	return options({
+		root, currentDirectory: root, environment,
+		validateOpenCode: async () => null,
+		run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? root : args.includes('status') ? '' : args.includes('ls-files') ? tracked.join('\n') : `https://github.com/${authority.environment.repository.slug}.git`,
+		...overrides,
+	});
+}
+
 test('authority is sole source, and the example is the exact two-key local selector', async () => {
 	assert.equal(validateAuthority(authority), null);
 	assert.equal(validateExample(example, authority), null);
@@ -80,6 +92,22 @@ test('repository, lock, ignore, package mismatch, canaries, and override argumen
 	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : args.includes('ls-files') ? 'rogue.tmp' : `https://github.com/${authority.environment.repository.slug}` })), 'PATH_POLICY_INVALID');
 	assert.equal(await validateEnvironment(options({ configText: sentinel })), 'CONFIG_INVALID');
 	assert.equal(await validateEnvironment(options({ run: async (command, args) => args.includes('ls-files') ? Promise.reject(new Error(sentinel)) : command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : `https://github.com/${authority.environment.repository.slug}` })), 'COMMAND_FAILED');
+});
+
+test('the alternate GitHub pull-request root requires exact execution identity and a clean canonical checkout', async () => {
+	assert.equal(await validateEnvironment(ciOptions()), null);
+	for (const name of Object.keys(authority.environment.repository.ciRootPolicy.metadata)) {
+		const missing = ciOptions(); delete missing.environment[name];
+		assert.equal(await validateEnvironment(missing), 'CI_METADATA_INVALID');
+		const wrong = ciOptions(); wrong.environment[name] = 'unexpected';
+		assert.equal(await validateEnvironment(wrong), 'CI_METADATA_INVALID');
+	}
+	assert.equal(await validateEnvironment(ciOptions({ environment: { ...authority.environment.repository.ciRootPolicy.metadata, GITHUB_WORKSPACE: '/other' } })), 'CI_WORKSPACE_INVALID');
+	assert.equal(await validateEnvironment(ciOptions({ currentDirectory: '/other' })), 'CI_WORKSPACE_INVALID');
+	assert.equal(await validateEnvironment(ciOptions({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? '/other' : args.includes('status') ? '' : args.includes('ls-files') ? '.github/workflows/pr-validation.yml' : `https://github.com/${authority.environment.repository.slug}.git` })), 'REPOSITORY_TOPLEVEL_INVALID');
+	assert.equal(await validateEnvironment(ciOptions({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? '/home/runner/work/Baukasten-Press/Baukasten-Press' : args.includes('status') ? '' : args.includes('ls-files') ? '.github/workflows/pr-validation.yml' : `https://token:${sentinel}@github.com/x/y` })), 'REPOSITORY_ORIGIN_INVALID');
+	assert.equal(await validateEnvironment(ciOptions({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? '/home/runner/work/Baukasten-Press/Baukasten-Press' : args.includes('status') ? ' M README.md' : args.includes('ls-files') ? '.github/workflows/pr-validation.yml' : `https://github.com/${authority.environment.repository.slug}.git` })), 'CI_WORKTREE_INVALID');
+	assert.equal(await validateEnvironment(ciOptions({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? '/home/runner/work/Baukasten-Press/Baukasten-Press' : args.includes('status') ? '' : args.includes('ls-files') ? '.github/workflows/unknown.yml' : `https://github.com/${authority.environment.repository.slug}.git` })), 'PATH_POLICY_INVALID');
 });
 
 test('OpenCode provider and external capability drift fails under the environment contract', async () => {
