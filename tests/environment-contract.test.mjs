@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import path from 'node:path';
 
-import { parseStrictJson, repositoryRoot, validateAuthority, validateEnvironment, validateExample } from '../scripts/validate-environment.mjs';
+import { canonicalEnvironmentGitArguments, parseStrictJson, repositoryRoot, runExactGit, validateAuthority, validateEnvironment, validateExample } from '../scripts/validate-environment.mjs';
 import { validateOpenCodeConfigText } from '../scripts/validate-opencode-governance.mjs';
 
 const authorityText = await readFile(path.join(repositoryRoot, 'config', 'environment-contract.json'), 'utf8');
@@ -19,11 +19,12 @@ const sentinel = 'BAP41_SENTINEL_NEVER_ECHO';
 function cloneV2(value) { return JSON.parse(JSON.stringify(value)); }
 function options(overrides = {}) {
 	const tracked = ['AGENTS.md', 'README.md', 'config/environment-contract.json'];
+	const run = overrides.run ?? (async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : args.includes('ls-files') ? tracked.join('\n') : `https://github.com/${authority.environment.repository.slug}.git`);
 	return {
 		authorityText, configText: exampleText, root: authority.environment.repository.root, currentDirectory: authority.environment.repository.root, environment: {}, nodeVersion: authority.environment.toolchain.node,
 		readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2 : lockTextV2,
 		validateOpenCode: async ({ root, readText }) => validateOpenCodeConfigText(await readText(path.join(root, 'opencode.jsonc'))),
-		run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : args.includes('ls-files') ? tracked.join('\n') : `https://github.com/${authority.environment.repository.slug}.git`,
+		run, gitRun: overrides.gitRun ?? run,
 		...overrides,
 	};
 }
@@ -46,6 +47,45 @@ test('authority is sole source, and the example is the exact two-key local selec
 	assert.equal(example.environment, 'local');
 	assert.equal(await validateEnvironment(options()), null);
 	for (const profile of Object.values(authority.environment.profiles)) assert.equal(Object.values(profile.capabilities).every((value) => value === false), true);
+});
+
+test('environment Git transport is exact, isolated, and unaffected by hostile Git metadata', async () => {
+	const calls = [];
+	const exactGit = runExactGit.bind(null, 'git');
+	const result = await exactGit(['status', '--short'], authority.environment.repository.root, async (...argumentsList) => {
+		calls.push(argumentsList);
+		return { stdout: 'safe\n' };
+	});
+	assert.equal(result, 'safe');
+	assert.deepEqual(calls, [[
+		'git',
+		canonicalEnvironmentGitArguments(authority.environment.repository.root, ['status', '--short']),
+		{ cwd: authority.environment.repository.root, env: {}, shell: false },
+	]]);
+	await assert.rejects(() => runExactGit('npm', ['--version'], authority.environment.repository.root, async () => { throw new Error('unexpected'); }));
+	const hostileCalls = [];
+	const failure = await validateEnvironment(options({
+		environment: { GIT_DIR: sentinel, GIT_CONFIG_GLOBAL: sentinel },
+		gitRun: (command, args) => runExactGit(command, args, authority.environment.repository.root, async (...argumentsList) => {
+			hostileCalls.push(argumentsList);
+			throw new Error(sentinel);
+		}),
+	}));
+	assert.equal(failure, 'COMMAND_FAILED');
+	assert.equal(failure.includes(sentinel), false);
+	assert.equal(hostileCalls.length, 3);
+	for (const [command, argumentsList, invocation] of hostileCalls) {
+		assert.equal(command, 'git');
+		assert.deepEqual(argumentsList.slice(0, 2), ['-c', `safe.directory=${path.resolve(authority.environment.repository.root)}`]);
+		assert.deepEqual(invocation, { cwd: authority.environment.repository.root, env: {}, shell: false });
+	}
+	for (const argumentsList of [['push'], [], ['status'], ['status', '--short', '--porcelain'], ['ls-files', ''], null]) {
+		assert.throws(() => canonicalEnvironmentGitArguments(repositoryRoot, argumentsList));
+	}
+	assert.throws(() => canonicalEnvironmentGitArguments(path.join(repositoryRoot, '..'), ['status', '--short']));
+	let executed = false;
+	await assert.rejects(() => exactGit(['push'], repositoryRoot, async () => { executed = true; return { stdout: '' }; }));
+	assert.equal(executed, false);
 });
 
 test('authority and selector reject schema drift, escaped/duplicate keys, profiles, paths, and capabilities', () => {

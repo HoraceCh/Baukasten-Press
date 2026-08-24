@@ -20,6 +20,12 @@ const isStringList = (value) => Array.isArray(value) && value.length > 0 && valu
 const normalizePath = (value) => value.replaceAll('/', '\\').replace(/\\+$/, '').toLowerCase();
 const fail = (code) => SAFE_CODES.has(code) ? code : 'CONFIG_INVALID';
 const exactEntries = (value, expected) => exactKeys(value, Object.keys(expected)) && Object.entries(expected).every(([key, entry]) => value[key] === entry);
+const canonicalEnvironmentGitQueries = Object.freeze([
+	Object.freeze(['config', '--get', 'remote.origin.url']),
+	Object.freeze(['rev-parse', '--show-toplevel']),
+	Object.freeze(['status', '--short']),
+	Object.freeze(['ls-files']),
+]);
 
 /** JSON parser that rejects duplicate and escaped object member names. */
 export function parseStrictJson(text) {
@@ -64,7 +70,18 @@ function ciMetadataMatches(environment, policy) {
 	return Object.entries(policy.metadata).every(([name, value]) => environment[name] === value) && typeof environment.GITHUB_WORKSPACE === 'string' && environment.GITHUB_WORKSPACE.length > 0;
 }
 
-async function runExactTool(command, argumentsList, root) {
+export function canonicalEnvironmentGitArguments(root, argumentsList) {
+	if (path.resolve(root) !== path.resolve(repositoryRoot) || !canonicalEnvironmentGitQueries.some((query) => sameStrings(argumentsList, query))) throw new Error('COMMAND_FAILED');
+	return ['-c', `safe.directory=${path.resolve(root)}`, ...argumentsList];
+}
+
+export async function runExactGit(command, argumentsList, root, execute = executeFile) {
+	if (command !== 'git') throw new Error('COMMAND_FAILED');
+	return (await execute('git', canonicalEnvironmentGitArguments(root, argumentsList), { cwd: root, env: {}, shell: false })).stdout.trim();
+}
+
+async function runExactNpm(command, argumentsList, root) {
+	if (command !== 'npm') throw new Error('COMMAND_FAILED');
 	if (command === 'npm' && process.platform === 'win32') {
 		const nodeDirectory = path.dirname(process.execPath);
 		const prefixScript = path.join(nodeDirectory, 'node_modules', 'npm', 'bin', 'npm-prefix.js');
@@ -84,7 +101,7 @@ function sameDependencySection(left, right, name) {
 	return exactKeys(a, Object.keys(b)) && Object.keys(a).every((key) => a[key] === b[key]);
 }
 
-export async function validateEnvironment({ authorityText, configText, root = repositoryRoot, currentDirectory = process.cwd(), environment = process.env, nodeVersion = process.versions.node, readText = (file) => readFile(file, 'utf8'), validateOpenCode = validateOpenCodeGovernance, run = (command, argumentsList) => runExactTool(command, argumentsList, root), gitRun } = {}) {
+export async function validateEnvironment({ authorityText, configText, root = repositoryRoot, currentDirectory = process.cwd(), environment = process.env, nodeVersion = process.versions.node, readText = (file) => readFile(file, 'utf8'), validateOpenCode = validateOpenCodeGovernance, run = (command, argumentsList) => runExactNpm(command, argumentsList, root), gitRun = (command, argumentsList) => runExactGit(command, argumentsList, root) } = {}) {
 	if (Object.keys(environment).some((name) => /^baukasten_press_/i.test(name))) return fail('ENVIRONMENT_VARIABLE_FORBIDDEN');
 	let authority; let example;
 	try { authority = parseStrictJson(authorityText); example = parseStrictJson(configText); } catch { return fail('CONFIG_INVALID'); }
@@ -97,7 +114,7 @@ export async function validateEnvironment({ authorityText, configText, root = re
 	if (!ci && normalizePath(currentDirectory) !== normalizePath(repository.root)) return fail('REPOSITORY_CWD_INVALID');
 	if (ci && (normalizePath(environment.GITHUB_WORKSPACE) !== normalizePath(root) || normalizePath(currentDirectory) !== normalizePath(root))) return fail('CI_WORKSPACE_INVALID');
 	if (nodeVersion !== toolchain.node) return fail('NODE_VERSION_INVALID');
-	const invokeGit = gitRun ?? run;
+	const invokeGit = gitRun;
 	let origin; let topLevel; let npmVersion; let status;
 	try { [origin, topLevel, npmVersion, status] = await Promise.all([invokeGit('git', ['config', '--get', 'remote.origin.url']), invokeGit('git', ['rev-parse', '--show-toplevel']), run('npm', ['--version']), invokeGit('git', ['status', '--short'])]); } catch { return fail('COMMAND_FAILED'); }
 	if (normalizePath(topLevel) !== normalizePath(ci ? root : repository.root)) return fail('REPOSITORY_TOPLEVEL_INVALID');

@@ -144,6 +144,9 @@ test('indirect caller audit denies undeclared or dynamic Git surfaces without ex
 	assert.equal(await auditIndirectCallers(['tests/git-safety-contract.test.mjs'], { readText: async () => `${fixtureText}\n${'executeFile'}('git', ['push'])` }), 'INDIRECT_CALLER_INVALID');
 	assert.equal(await auditIndirectCallers(['tests/git-safety-contract.test.mjs'], { readText: async () => `${fixtureText}\n${'run'}(['push'])` }), 'INDIRECT_CALLER_INVALID');
 	assert.equal(await auditIndirectCallers(['scripts/validate-environment.mjs'], { readText: async () => `${await readFile(path.join(repositoryRoot, 'scripts', 'validate-environment.mjs'), 'utf8')}\n${'invokeGit'}('git', ['push'])` }), 'INDIRECT_CALLER_INVALID');
+	assert.equal(await auditIndirectCallers(['scripts/validate-environment.mjs'], { readText: async () => `${await readFile(path.join(repositoryRoot, 'scripts', 'validate-environment.mjs'), 'utf8')}\n${'gitRun'}('git', ['push'])` }), 'INDIRECT_CALLER_INVALID');
+	assert.equal(await auditIndirectCallers(['scripts/validate-environment.mjs'], { readText: async () => `${await readFile(path.join(repositoryRoot, 'scripts', 'validate-environment.mjs'), 'utf8')}\n${'runExactGit'}('git', ['push'], repositoryRoot)` }), 'INDIRECT_CALLER_INVALID');
+	assert.equal(await auditIndirectCallers(['scripts/validate-environment.mjs'], { readText: async () => `${await readFile(path.join(repositoryRoot, 'scripts', 'validate-environment.mjs'), 'utf8')}\n${'execute'}('git', ['push'])` }), 'INDIRECT_CALLER_INVALID');
 	assert.equal(await auditIndirectCallers(['tests/git-safety-contract.test.mjs'], { readText: async () => `${fixtureText}\n${'run'}(['-C', repositoryRoot, 'reset', '--hard'])` }), 'INDIRECT_CALLER_INVALID');
 });
 

@@ -147,7 +147,8 @@ const internalGitQueries = new Set([
 	'config\u0000--get-regexp\u0000^includeIf\\.',
 	'config\u0000--get\u0000core.hooksPath',
 ]);
-const literalArray = (source) => [...source.matchAll(/(?:run|invokeGit)\(\s*['"]git['"]\s*,\s*(\[(?:\s*['"][^'"]*['"]\s*,?\s*)*\])/g)].map((match) => JSON.parse(match[1].replaceAll("'", '"')));
+const literalArray = (source) => [...source.matchAll(/(?:run|invokeGit|gitRun|runExactGit)\(\s*['"]git['"]\s*,\s*(\[(?:\s*['"][^'"]*['"]\s*,?\s*)*\])/g)].map((match) => JSON.parse(match[1].replaceAll("'", '"')));
+const exactEnvironmentGitTransport = (source) => /export async function runExactGit\(command, argumentsList, root, execute = executeFile\) \{\s*if \(command !== 'git'\) throw new Error\('COMMAND_FAILED'\);\s*return \(await execute\('git', canonicalEnvironmentGitArguments\(root, argumentsList\), \{ cwd: root, env: \{\}, shell: false \}\)\)\.stdout\.trim\(\);\s*\}/s.test(source);
 const executableSurface = (entry) => entry.endsWith('.mjs') && (!entry.includes('/') || entry.startsWith('scripts/') || entry.startsWith('tests/'));
 const fixtureInvocationCounts = new Map([['init', 1], ['config\u0000user.email\u0000fixture@example.invalid', 1], ['config\u0000user.name\u0000BAP-38 fixture', 1], ['add\u0000owned.txt', 2], ['add\u0000unrelated.txt', 1], ['commit\u0000-m\u0000test: create fixture', 1], ['commit\u0000-m\u0000test: stage exact path', 1], ['show\u0000--format=\u0000--name-only\u0000HEAD', 1], ['status\u0000--short', 2]]);
 
@@ -165,7 +166,9 @@ export async function auditIndirectCallers(paths, { root = repositoryRoot, readT
 		try { text = await readText(path.join(root, entry)); } catch { return fail('INDIRECT_CALLER_INVALID'); }
 		const executionText = text.replace(/readText:\s*async\s*\(\)\s*=>\s*(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '');
 		const calls = literalArray(executionText);
-		const hasDirectGit = /(?:run|invokeGit|execFile|executeFile)\(\s*['"]git['"]/.test(executionText);
+		const hasDirectGit = /(?:run|invokeGit|gitRun|runExactGit|execFile|executeFile|execute)\(\s*['"]git['"]/.test(executionText);
+		const directGitCalls = executionText.match(/(?:execFile|executeFile|execute)\(\s*['"]git['"]/g) ?? [];
+		const environmentGitTransport = entry === 'scripts/validate-environment.mjs' && exactEnvironmentGitTransport(executionText);
 		const fixtureWrapper = entry === 'tests/git-safety-contract.test.mjs' && executionText.includes("executeFile('git', args, { cwd: fixture, shell: false") && executionText.includes("mkdtemp(path.join(tmpdir(), 'bap-38-git-safety-'))");
 		if (!hasDirectGit && !fixtureWrapper) continue;
 		if (!expectedIndirectCallers.includes(entry)) return fail('INDIRECT_CALLER_INVALID');
@@ -174,7 +177,8 @@ export async function auditIndirectCallers(paths, { root = repositoryRoot, readT
 			if (!validFixtureInvocations(executionText)) return fail('INDIRECT_CALLER_INVALID');
 		}
 		if (/(?:\beval\b|shell\s*:\s*true|exec\s*\()/i.test(executionText)) return fail('INDIRECT_CALLER_INVALID');
-		if (hasDirectGit && calls.length === 0 && !fixtureWrapper) return fail('INDIRECT_CALLER_INVALID');
+		if (hasDirectGit && calls.length === 0 && !fixtureWrapper && !environmentGitTransport) return fail('INDIRECT_CALLER_INVALID');
+		if (environmentGitTransport && directGitCalls.length !== 1) return fail('INDIRECT_CALLER_INVALID');
 		for (const invocation of calls) {
 			const key = invocation.join('\u0000');
 			if (classifyGitArguments(invocation) !== 'read-only' && !internalGitQueries.has(key)) return fail('INDIRECT_CALLER_INVALID');
