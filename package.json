@@ -6,10 +6,15 @@
 	"type": "module",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
+		"validate:agents": "node scripts/validate-agent-infrastructure.mjs && node --test tests/opencode-governance.test.mjs",
+		"validate:git-safety": "node scripts/validate-git-safety.mjs && node --test tests/git-safety-contract.test.mjs",
+		"validate:environment": "node scripts/validate-environment.mjs --config config/environment.example.json",
+		"test:contracts": "node scripts/run-contract-tests.mjs",
+		"validate": "npm run validate:environment && npm run validate:agents && npm run validate:git-safety && npm run test:contracts && npm run typecheck && npm run lint && npm run build",
 		"typecheck": "tsc --noEmit --skipLibCheck",
 		"lint": "eslint .",
 		"build": "npm run typecheck && node esbuild.config.mjs production",
-		"version": "node version-bump.mjs && git add manifest.json versions.json"
+		"version:files": "node version-bump.mjs"
 	},
 	"keywords": [
 		"obsidian",

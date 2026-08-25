@@ -1,0 +1,8 @@
+{
+  "scenario_id": "invalid-derived-reusing-parent-id",
+  "participants": [
+    { "record": "revision", "skill_id": "example.parent-source", "revision_id": "rev-0001", "origin_kind": "authored" },
+    { "record": "revision", "skill_id": "example.parent-source", "revision_id": "rev-0002", "origin_kind": "derived", "parent_skill_ids": ["example.parent-source"] }
+  ],
+  "expected": { "verdict": "INVALID", "violation_class": "L4b", "notes": "DERIVED requires a NEW stable identity; reusing the parent skill_id (with self-referential parenting) is identity laundering plus self-parenting." }
+}

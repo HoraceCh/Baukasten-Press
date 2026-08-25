@@ -1,0 +1,43 @@
+{
+  "scenario_id": "env-mcp-unavailable-fail-closed",
+  "manifest_slice": {
+    "skill_id": "example.mcp-dependent-skill",
+    "trust_state": "provisional",
+    "enabled": true
+  },
+  "environment_declaration": {
+    "schema_version": 1,
+    "skill_id": "example.mcp-dependent-skill",
+    "os": { "supported": ["any"] },
+    "runtime_constraints": [],
+    "gui": "none",
+    "headless": "supported",
+    "required_tools": [],
+    "required_mcp_capabilities": [
+      { "name": "repository-search-connector", "necessity": "required" }
+    ],
+    "filesystem_assumptions": ["workspace-only writes"],
+    "network": "egress_required",
+    "credential_category": "none",
+    "capability_expectations": {
+      "read": "repository",
+      "write_scope": "none",
+      "external_write": false
+    },
+    "project_scope": ["F:\\Projects\\Baukasten Press"]
+  },
+  "host_context": {
+    "os_detected": "windows",
+    "gui_available": false,
+    "headless": true,
+    "tools_verified": {},
+    "mcp_available": {}
+  },
+  "expected": {
+    "category_verdicts": { "mcp_capabilities": "incompatible", "network": "unknown" },
+    "overall_compatibility": "incompatible",
+    "available_candidate": false,
+    "unavailability_reasons": ["A3"],
+    "notes": "Unavailable-MCP acceptance class: a required connector is absent, so the mcp category is incompatible; the required egress network cannot be verified either (worst-of keeps overall incompatible, never compatible)."
+  }
+}

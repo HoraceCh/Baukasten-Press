@@ -1,0 +1,9 @@
+{
+  "scenario_id": "valid-multi-parent-derived",
+  "participants": [
+    { "record": "revision", "skill_id": "example.parent-alpha", "revision_id": "rev-0001", "origin_kind": "authored" },
+    { "record": "revision", "skill_id": "example.parent-beta", "revision_id": "rev-0001", "origin_kind": "captured" },
+    { "record": "revision", "skill_id": "example.composed-skill", "revision_id": "rev-0001", "origin_kind": "derived", "parent_skill_ids": ["example.parent-alpha", "example.parent-beta"], "content_hash": "sha256:fff666", "change_summary": "composed two capabilities into one end-to-end workflow; multi-parent composition is a creative act recorded by summary, not per-parent diffs", "admission_decision": { "decision": "admitted", "decided_by": "human:Horace" } }
+  ],
+  "expected": { "verdict": "VALID", "notes": "Multi-parent DERIVED allowed: all parents resolve, generation = max(parents)+1, acyclic." }
+}

@@ -1,0 +1,22 @@
+[agents]
+enabled = true
+
+[agents.press_system_architect]
+description = "Read-only cross-boundary architect for ownership, workflow topology, handoffs, recovery, and human gates. Use only for changes spanning at least two ownership boundaries or materially changing workflow topology."
+config_file = "agents/press_system_architect.toml"
+
+[agents.publication_contract_guardian]
+description = "Read-only owner of publication semantics, legal state transitions, attempt limits, provenance, review, confirmation, and publication-boundary data minimization."
+config_file = "agents/publication_contract_guardian.toml"
+
+[agents.agent_runtime_security_engineer]
+description = "Read-only owner of future Agent profile, prompt, provider-neutral execution, credential-isolation, untrusted-content, and provider-adapter security contracts."
+config_file = "agents/agent_runtime_security_engineer.toml"
+
+[agents.press_app_implementer]
+description = "The single normal workspace-write owner for approved Baukasten Press implementation after the owning contracts are settled."
+config_file = "agents/press_app_implementer.toml"
+
+[agents.qa_release_reviewer]
+description = "Independent read-only final gate for scope, contracts, safety boundaries, tests, build evidence, dependencies, and side effects."
+config_file = "agents/qa_release_reviewer.toml"

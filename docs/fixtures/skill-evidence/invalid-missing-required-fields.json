@@ -1,0 +1,21 @@
+{
+  "evidence_schema_version": 1,
+  "evidence_id": "evd-000007",
+  "task_ref": null,
+  "outcome": "completed",
+  "invoking_agent_owner": "press_app_implementer",
+  "invoking_runtime": "opencode",
+  "repository_head": "07d01308312ca6ec5af5818a861e025498e5fc39",
+  "recorded_at": "2026-08-23T15:00:00Z",
+  "actor": "human:Horace",
+  "environment_result_ref": "compatible",
+  "tool_observations": [],
+  "validation_refs": [],
+  "qa_outcome": null,
+  "failure_attribution": null,
+  "fallback_reason": null,
+  "quality_record_id": null,
+  "provenance_refs": [],
+  "redaction_status": "verified_redacted",
+  "producer": { "identity": "validator:contract-fixture", "mechanism": "deterministic contract example" }
+}

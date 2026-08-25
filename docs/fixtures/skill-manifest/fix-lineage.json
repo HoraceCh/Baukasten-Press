@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "skill_id": "example.fixable-skill",
+  "name": "Example Fixable Skill",
+  "category": "tool_guide",
+  "revision_id": "rev-0002",
+  "provenance": {
+    "origin": "project-authored",
+    "created_from_issue": null
+  },
+  "trust_state": "provisional",
+  "enabled": true,
+  "environment_contract_ref": null,
+  "lineage": {
+    "origin_kind": "fixed",
+    "parent_skill_ids": [],
+    "parent_revision_ids": ["example.fixable-skill@rev-0001"]
+  },
+  "evidence_ref": null,
+  "path": ".agents/skills/example-fixable/",
+  "created_by": "human:Horace",
+  "updated_at": "2026-08-23T00:00:00Z"
+}

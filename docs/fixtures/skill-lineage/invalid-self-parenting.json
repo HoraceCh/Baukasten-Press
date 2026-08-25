@@ -1,0 +1,7 @@
+{
+  "scenario_id": "invalid-self-parenting",
+  "participants": [
+    { "record": "revision", "skill_id": "example.loop-skill", "revision_id": "rev-0002", "origin_kind": "fixed", "parent_revision_ids": ["example.loop-skill@rev-0002"] }
+  ],
+  "expected": { "verdict": "INVALID", "violation_class": "L3", "notes": "A revision may not list itself as its own parent; a FIX parents the PREVIOUS revision, never itself." }
+}

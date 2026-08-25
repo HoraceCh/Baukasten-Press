@@ -1,0 +1,9 @@
+{
+  "scenario_id": "valid-imported-lineage",
+  "participants": [
+    { "record": "revision", "skill_id": "example.imported-skill", "revision_id": "rev-0001", "origin_kind": "imported", "parent_skill_ids": [], "content_hash": "sha256:eee555",
+      "provenance": { "origin": "imported", "source_url": "https://github.com/HKUDS/OpenSpace", "source_tag": "v2.0.0", "source_commit": "fadc4bccab0e056226507eb5381b4272967f6bd3", "license": "MIT", "boundary_doc_ref": "docs/AGENCY_OPENSPACE_ADOPTION.md" },
+      "admission_decision": { "decision": "admitted_provisional", "decided_by": "human:Horace" } }
+  ],
+  "expected": { "verdict": "VALID", "notes": "Immutable external provenance (tag AND commit AND license AND boundary ref); enters provisional per BAP-52; no authority inherited from origin reputation." }
+}

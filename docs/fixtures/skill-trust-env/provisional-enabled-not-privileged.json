@@ -1,0 +1,16 @@
+{
+  "scenario_id": "provisional-enabled-not-privileged",
+  "manifest_slice": {
+    "skill_id": "example.fresh-skill",
+    "trust_state": "provisional",
+    "enabled": true
+  },
+  "environment_evaluation": "compatible",
+  "expected": {
+    "state_valid": true,
+    "available_candidate": true,
+    "eligible_for_privileged_routing": false,
+    "automatic_promotion": false,
+    "notes": "Enabled never implies trusted; provisional skills stay eligible only for non-privileged consideration until gates P1-P4 are satisfied by an authorized owner."
+  }
+}

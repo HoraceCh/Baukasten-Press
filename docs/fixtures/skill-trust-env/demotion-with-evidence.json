@@ -1,0 +1,19 @@
+{
+  "scenario_id": "demotion-with-evidence",
+  "attempted_transition": {
+    "skill_id": "example.trusted-skill",
+    "from_trust_state": "trusted",
+    "to_trust_state": "provisional",
+    "decision_owner": "press_system_architect (routing-designated authority)",
+    "trigger": "environment assumptions failed in the field: required tool removed from standard host image",
+    "evidence_refs": ["BAP-52#fixture", "commit:07d01308312ca6ec5af5818a861e025498e5fc39"],
+    "rationale_recorded": true,
+    "recorded_retroactively_within_transaction": false
+  },
+  "expected": {
+    "transition_valid": true,
+    "resulting_trust_state": "provisional",
+    "history_preserved": true,
+    "notes": "Demotion trigger 'environment assumptions fail' satisfied with named owner and recorded rationale; prior trusted-era evidence remains auditable. Re-promotion requires the full §4 gates again."
+  }
+}

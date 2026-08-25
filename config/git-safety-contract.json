@@ -1,0 +1,20 @@
+{
+  "contractVersion": "1.0",
+  "repositoryAuthority": "config/environment-contract.json",
+  "transport": "rtk",
+  "validatorGitContext": {
+    "safeDirectory": "canonical-root",
+    "environment": "empty",
+    "shell": false
+  },
+  "commandClasses": {
+    "readOnly": ["status", "diff", "log", "show", "rev-parse", "config --get", "ls-files", "grep", "branch --show-current", "remote get-url origin"],
+    "implementationMutation": ["add <exact-relative-path>", "add -p <exact-relative-path>", "commit -m <conventional-subject>"],
+    "deliveryMutation": ["push", "switch", "branch", "remote branch", "pull request", "ruleset", "branch protection"]
+  },
+  "implementationRequirements": ["explicitOperationAuthority", "pressAppImplementer", "liveBapIssue", "exactPathAllowlist", "unrelatedWorkPreserved", "focusedValidation", "independentQa", "cachedDiffEvidence", "linearCompletionEvidence"],
+  "prohibitedGitCommands": ["reset", "clean", "restore", "checkout", "stash", "rebase", "cherry-pick", "merge", "force", "filter-branch", "filter-repo", "rm", "mv", "update-ref", "replace", "reflog", "gc", "prune", "init", "clone", "submodule", "worktree"],
+  "prohibitedGitArguments": ["-C", "--git-dir", "--work-tree", "-c", "--intent-to-add", "-N", "--all", "-a", "--amend", "--no-verify", "--allow-empty", "--fixup", "--squash", "-S", "--gpg-sign"],
+  "approvedIndirectCallers": ["scripts/validate-environment.mjs", "scripts/validate-git-safety.mjs", "tests/git-safety-contract.test.mjs"],
+  "safeFailureCodes": ["ARGUMENTS_INVALID", "POLICY_READ_FAILED", "POLICY_INVALID", "ENVIRONMENT_CONTRACT_INVALID", "PACKAGE_INVALID", "PACKAGE_SCRIPT_INVALID", "GIT_ALIAS_INVALID", "GIT_INCLUDE_INVALID", "GIT_HOOK_INVALID", "TRACKED_SURFACE_INVALID", "INDIRECT_CALLER_INVALID", "AUTHORIZATION_INVALID", "DELIVERY_AUTHORIZATION_REQUIRED", "COMMAND_FAILED"]
+}

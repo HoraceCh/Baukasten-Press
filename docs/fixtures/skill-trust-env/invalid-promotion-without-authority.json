@@ -1,0 +1,19 @@
+{
+  "scenario_id": "invalid-promotion-without-authority",
+  "attempted_transition": {
+    "skill_id": "example.fresh-skill",
+    "from_trust_state": "provisional",
+    "to_trust_state": "trusted",
+    "proposed_by": "OpenCode (execution agent)",
+    "evidence_refs": [],
+    "decision_owner": null,
+    "rationale_recorded": false,
+    "unresolved_defects": []
+  },
+  "expected": {
+    "transition_valid": false,
+    "failed_gates": ["P1", "P2", "P4"],
+    "resulting_trust_state": "provisional",
+    "notes": "Gate check: P1 fails (no resolvable evidence), P2 fails (no authorized decision owner; an execution agent may only propose), P4 fails (no recorded rationale). P3 is vacuously clean here, but all four gates are mandatory, so the promotion is invalid and trust remains provisional."
+  }
+}

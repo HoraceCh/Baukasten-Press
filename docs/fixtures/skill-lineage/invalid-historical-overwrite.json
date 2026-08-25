@@ -1,0 +1,8 @@
+{
+  "scenario_id": "invalid-historical-overwrite",
+  "participants": [
+    { "record": "revision", "skill_id": "example.frozen-skill", "revision_id": "rev-0001", "content_hash": "sha256:original77", "origin_kind": "authored", "admitted_at": "2026-08-20T00:00:00Z" },
+    { "record": "revision", "skill_id": "example.frozen-skill", "revision_id": "rev-0001", "content_hash": "sha256:mutated99", "origin_kind": "authored", "admitted_at": "2026-08-23T00:00:00Z", "change_note": "same revision_id re-admitted with different content, no new revision minted" }
+  ],
+  "expected": { "verdict": "INVALID", "violation_class": "L5", "notes": "Admitted revisions are immutable: identical skill_id+revision_id with a different content hash is a silent historical overwrite; corrections require rev-0002 or the governed supersession mechanism." }
+}

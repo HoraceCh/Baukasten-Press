@@ -1,0 +1,16 @@
+{
+  "scenario_id": "retired-enabled-unavailable",
+  "manifest_slice": {
+    "skill_id": "example.superseded-skill",
+    "trust_state": "retired",
+    "enabled": true
+  },
+  "environment_evaluation": "compatible",
+  "expected": {
+    "state_valid": true,
+    "available_candidate": false,
+    "unavailability_reasons": ["A2"],
+    "enabled_override_respected": false,
+    "notes": "Retirement overrides the enabled switch (A2 outranks A1 semantics): the record stays historically auditable but must never be selected for normal execution. Re-activation is impossible in place; re-admission requires a NEW identity through governed admission."
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "scenario_id": "invalid-lineage-cycle",
+  "participants": [
+    { "record": "revision", "skill_id": "example.cycle-alpha", "revision_id": "rev-0001", "origin_kind": "derived", "parent_skill_ids": ["example.cycle-beta"] },
+    { "record": "revision", "skill_id": "example.cycle-beta", "revision_id": "rev-0001", "origin_kind": "derived", "parent_skill_ids": ["example.cycle-alpha"] }
+  ],
+  "expected": { "verdict": "INVALID", "violation_class": "L1", "notes": "Mutual parenting forms a cyclic ancestry with no resolvable root; fail closed." }
+}

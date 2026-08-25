@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "skill_id": "baukasten.press-ui",
+  "name": "Baukasten Press UI Design System",
+  "category": "workflow",
+  "revision_id": "rev-0001",
+  "provenance": {
+    "origin": "project-authored",
+    "created_from_issue": null
+  },
+  "trust_state": "provisional",
+  "enabled": true,
+  "environment_contract_ref": null,
+  "lineage": {
+    "origin_kind": "authored",
+    "parent_skill_ids": [],
+    "parent_revision_ids": []
+  },
+  "evidence_ref": null,
+  "path": ".agents/skills/baukasten-press-ui/",
+  "created_by": "human:Horace",
+  "updated_at": "2026-08-23T16:00:00Z"
+}

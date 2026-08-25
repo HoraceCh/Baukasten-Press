@@ -8,6 +8,28 @@
 - Do not modify `Baukasten_Nexus`, its `.obsidian` configuration, `98 Publish`, or user notes unless a later task explicitly authorizes a precise write scope.
 - Do not implement a publishing destination, provider call, credential store, or local Agent execution contract before its interface is approved.
 
+## Codex ownership and routing
+
+- The five registered project owners are `press_system_architect`, `publication_contract_guardian`, `agent_runtime_security_engineer`, `press_app_implementer`, and `qa_release_reviewer`.
+- Assign exactly one primary owner per task and follow [docs/AGENT_ROUTING.md](docs/AGENT_ROUTING.md).
+- Read-only specialists define their contracts before `press_app_implementer` performs dependent implementation. Final QA remains independent and read-only.
+- Write-capable work is serial. Parallelism is limited to independent read-only investigation, and direct children must not recursively fan out.
+- Agent registration grants no provider, credential, publication, repository, external-system, or vault authority.
+- Third-party Agency Agents are advisory provenance only. Never globally install or dynamically import upstream agents into this project.
+- Current project-local contracts override upstream content.
+
+## Git safety and focused commits
+
+- After the BAP-38 commit, [config/git-safety-contract.json](config/git-safety-contract.json) and [docs/GIT_SAFETY.md](docs/GIT_SAFETY.md) govern Git command classification. Repository identity remains the environment contract; BAP-42 validation remains required evidence.
+- Read-only commands use the recognized `rtk` forms. Ambiguous commands, wrappers, aliases, evaluator shells, `GIT_*` overrides, and indirect script mutations fail closed.
+- Only `press_app_implementer` may make an approved implementation mutation. It needs explicit operation authority, a live BAP issue, exact-path or reviewed patch staging, cached name/status/stat/check/full-diff evidence, focused validation, independent QA, and Linear completion evidence. Preserve unrelated tracked and untracked work.
+- Specialists, QA, release review, and Agent registration are read-only roles. Routing does not grant sandbox, Git, delivery, provider, vault, or publication authority.
+- Delivery actions, including push, remote branches, pull requests, rulesets, and protected-main changes, require separate operation-specific authority and BAP-39 checks; direct-main delivery is denied. The BAP-38 commit itself is made under the previously committed governance.
+
+## Skill Governance v2
+
+Project-local Skills under `.agents/skills/` are governed by the frozen BAP-50–55 contracts via [docs/SKILL_REGISTRY.md](docs/SKILL_REGISTRY.md) and [docs/SKILL_ADMISSION_ROUTING.md](docs/SKILL_ADMISSION_ROUTING.md). Before relying on a Skill, run its admission preflight (identity, trust, availability, environment compatibility); directory presence alone is not admission. Precedence for Skill guidance follows this document and the frozen contracts as ordered in docs/SKILL_ADMISSION_ROUTING.md. Skill changes go through the controlled admission workflow there: Agents propose candidates, named owners decide.
+
 ## Canonical UI direction
 
 - Every Baukasten Press interface must follow [docs/design/UI_DESIGN.md](docs/design/UI_DESIGN.md). Read it before planning, implementing, or reviewing UI work.

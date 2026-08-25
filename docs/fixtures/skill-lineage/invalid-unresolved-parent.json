@@ -1,0 +1,7 @@
+{
+  "scenario_id": "invalid-unresolved-parent",
+  "participants": [
+    { "record": "revision", "skill_id": "example.wandering-skill", "revision_id": "rev-0001", "origin_kind": "derived", "parent_skill_ids": ["example.ghost-skill"] }
+  ],
+  "expected": { "verdict": "INVALID", "violation_class": "L2", "notes": "Parent example.ghost-skill does not exist in registry scope; fabricated lineage metadata fails closed." }
+}
