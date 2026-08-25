@@ -147,6 +147,49 @@ function evaluateManifest(manifest, errors, label) {
 	return true;
 }
 
+function evaluateManifestParentResolution(manifest, availableSkillIds, errors, label) {
+	const lineage = manifest.lineage;
+	if (!isPlainObject(lineage) || !Array.isArray(lineage.parent_skill_ids) || !Array.isArray(lineage.parent_revision_ids)) return;
+	const parentSkillIds = lineage.parent_skill_ids;
+	const parentRevisionIds = lineage.parent_revision_ids;
+	if (lineage.origin_kind === 'derived' && parentSkillIds.length === 0) {
+		errors.push(`${label}: D4 derived lineage requires at least one parent_skill_id.`);
+	}
+	if (lineage.origin_kind === 'fixed' && parentRevisionIds.length !== 1) {
+		errors.push(`${label}: D4 fixed lineage requires exactly one parent_revision_id.`);
+	}
+	if (['authored', 'captured', 'imported'].includes(lineage.origin_kind) && (parentSkillIds.length > 0 || parentRevisionIds.length > 0)) {
+		errors.push(`${label}: D4 ${lineage.origin_kind} root lineage must not declare parents.`);
+	}
+	for (const parent of parentSkillIds) {
+		if (!availableSkillIds.has(parent)) {
+			errors.push(`${label}: D4 lineage parent ${parent} does not resolve within the manifest registry scope.`);
+		}
+	}
+}
+
+function hasExactViolationClass(findings, violationClass) {
+	const escaped = violationClass.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const exactClass = new RegExp(`(?:^|:\\s)${escaped}(?=\\s|:|$)`);
+	return findings.some((finding) => !finding.startsWith('harness:') && exactClass.test(finding));
+}
+
+function validateFixtureExpectation(expectation, fixtureKey, errors) {
+	if (!['VALID', 'INVALID'].includes(expectation.verdict)) {
+		errors.push(`Expectation for ${fixtureKey} must declare verdict VALID or INVALID.`);
+		return false;
+	}
+	if (expectation.verdict === 'VALID' && expectation.violation_class !== null) {
+		errors.push(`Expectation for valid fixture ${fixtureKey} must declare violation_class null.`);
+		return false;
+	}
+	if (expectation.verdict === 'INVALID' && !isNonEmptyString(expectation.violation_class)) {
+		errors.push(`Expectation for invalid fixture ${fixtureKey} must declare a nonempty violation_class.`);
+		return false;
+	}
+	return true;
+}
+
 const ECD_FIELDS = [
 	'schema_version', 'skill_id', 'os', 'runtime_constraints', 'gui', 'headless',
 	'required_tools', 'required_mcp_capabilities', 'filesystem_assumptions', 'network',
@@ -319,6 +362,9 @@ function evaluateEvidenceRecord(record, errors, label) {
 		errors.push(`${label}: E1 tool_observations/validation_refs/provenance_refs must be arrays.`);
 	}
 	checkEnum(record, 'redaction_status', REDACTION_STATES, errors, label, 'E8');
+	if (record.redaction_status === 'violated') {
+		errors.push(`${label}: E8 redaction_status violated records inadmissible unredacted evidence.`);
+	}
 	if (!isPlainObject(record.producer) || !isNonEmptyString(record.producer.identity) || !isNonEmptyString(record.producer.mechanism)) {
 		errors.push(`${label}: E7 producer identity/mechanism missing or unverifiable shape.`);
 	}
@@ -338,7 +384,15 @@ function evaluateRevisionBundle(bundle, errors, label) {
 		errors.push(`${label}: L-class bundle requires scenario_id and participants array.`);
 		return;
 	}
-	const revisions = bundle.participants.filter((participant) => isPlainObject(participant) && participant.record !== 'governed_decision');
+	const manifestSlices = bundle.participants.filter((participant) => isPlainObject(participant) && participant.record === 'manifest_slice');
+	for (const slice of manifestSlices) {
+		if (slice.trust_state === 'retired' && slice.enabled === true
+			&& slice.attempted_by !== undefined && slice.authority_decision_recorded !== true) {
+			errors.push(`${label}: L7 retired lineage cannot be reactivated by ${JSON.stringify(slice.attempted_by)} without a governed authority decision.`);
+		}
+	}
+	const revisions = bundle.participants.filter((participant) => isPlainObject(participant)
+		&& !['governed_decision', 'manifest_slice'].includes(participant.record));
 	for (const participant of revisions) {
 		if (!isNonEmptyString(participant.skill_id) || !isNonEmptyString(participant.revision_id)) {
 			errors.push(`${label}: L2 bundle participant missing skill_id/revision_id.`);
@@ -379,6 +433,9 @@ function evaluateRevisionBundle(bundle, errors, label) {
 				errors.push(`${labelWithRef}: L4a FIX requires exactly one parent revision.`);
 			} else {
 				const [parentReference] = parentRevisions;
+				if (parentReference === reference) {
+					errors.push(`${labelWithRef}: L3 self-parenting detected.`);
+				}
 				const [parentSkill] = parentReference.split('@');
 				if (parentSkill !== participant.skill_id) {
 					errors.push(`${labelWithRef}: L4a FIX changed stable identity (parent belongs to ${parentSkill}).`);
@@ -587,8 +644,7 @@ async function validateFixtureHarness(repositoryRoot, errors, stats) {
 				errors.push(`Fixture ${fixtureKey} has no entry in docs/fixtures/expected-verdicts.json (harness completeness).`);
 				continue;
 			}
-			if (!['VALID', 'INVALID'].includes(expectation.verdict)) {
-				errors.push(`Expectation for ${fixtureKey} must declare verdict VALID or INVALID.`);
+			if (!validateFixtureExpectation(expectation, fixtureKey, errors)) {
 				continue;
 			}
 			const evaluationErrors = [];
@@ -596,13 +652,8 @@ async function validateFixtureHarness(repositoryRoot, errors, stats) {
 			if (entry.record !== null && evaluator) {
 				evaluator(entry.record, evaluationErrors, fixtureKey, entry.fileName);
 			}
-			if (directoryName === 'skill-manifest' && isPlainObject(entry.record) && isPlainObject(entry.record.lineage)
-				&& ['derived', 'captured'].includes(entry.record.lineage.origin_kind)) {
-				for (const parent of Array.isArray(entry.record.lineage.parent_skill_ids) ? entry.record.lineage.parent_skill_ids : []) {
-					if (!manifestScopeSkillIds.has(parent)) {
-						evaluationErrors.push(`${fixtureKey}: D2 lineage parent ${parent} does not resolve within the manifest fixture scope.`);
-					}
-				}
+			if (directoryName === 'skill-manifest' && isPlainObject(entry.record)) {
+				evaluateManifestParentResolution(entry.record, manifestScopeSkillIds, evaluationErrors, fixtureKey);
 			}
 			if (directoryName === 'skill-manifest' && isPlainObject(expectation.context) && expectation.violation_class === 'D1') {
 				const duplicatesTargetFileName = (expectation.context.duplicatesFixture ?? '').split('/').pop();
@@ -635,7 +686,13 @@ async function validateFixtureHarness(repositoryRoot, errors, stats) {
 				}
 			}
 			if (expectation.verdict === 'INVALID' && !detectedViolation) {
-				errors.push(`Invalid fixture ${fixtureKey} passed validation but expected ${expectation.violation_class ?? 'a violation'} - validator defect.`);
+				errors.push(`Invalid fixture ${fixtureKey} passed validation but expected ${expectation.violation_class} - validator defect.`);
+			}
+			if (expectation.verdict === 'INVALID' && detectedViolation && !hasExactViolationClass(evaluationErrors, expectation.violation_class)) {
+				errors.push(`Invalid fixture ${fixtureKey} detected ${evaluationErrors.length} finding(s), but none has exact violation class ${expectation.violation_class} - validator defect.`);
+				for (const finding of evaluationErrors) {
+					errors.push(`  ^ ${finding}`);
+				}
 			}
 		}
 	}
@@ -667,6 +724,7 @@ async function validateGovernedSkillManifests(repositoryRoot, errors, stats) {
 		return;
 	}
 	const seenSkillIds = new Map();
+	const governedManifests = [];
 	for (const directoryName of directories) {
 		const manifestPath = joinPath(skillsRoot, directoryName, 'skill.manifest.json');
 		let manifest;
@@ -679,11 +737,16 @@ async function validateGovernedSkillManifests(repositoryRoot, errors, stats) {
 		const label = `.agents/skills/${directoryName}/skill.manifest.json`;
 		const structurallyValid = evaluateManifest(manifest, errors, label);
 		if (!structurallyValid) continue;
+		governedManifests.push({ manifest, label });
 		if (seenSkillIds.has(manifest.skill_id)) {
 			errors.push(`${label}: D1 duplicate stable identifier ${manifest.skill_id} (also claimed by ${seenSkillIds.get(manifest.skill_id)}).`);
 		} else {
 			seenSkillIds.set(manifest.skill_id, label);
 		}
+	}
+	const governedSkillIds = new Set(governedManifests.map(({ manifest }) => manifest.skill_id));
+	for (const { manifest, label } of governedManifests) {
+		evaluateManifestParentResolution(manifest, governedSkillIds, errors, label);
 	}
 }
 
@@ -711,6 +774,14 @@ function runSelfTestProbes(errors) {
 	evaluateProvenance(undefined, missingProvenanceScratch, 'probe');
 	const missingProvenanceDetected = missingProvenanceScratch.some((message) => message.includes('D3'));
 	probe('D3 missing provenance', missingProvenanceDetected);
+	const brokenManifestLineageScratch = [];
+	evaluateManifestParentResolution({
+		lineage: { origin_kind: 'derived', parent_skill_ids: ['ghost-parent'], parent_revision_ids: [] },
+	}, new Set(['child']), brokenManifestLineageScratch, 'selftest-manifest');
+	probe('D4 unresolved manifest lineage parent', hasExactViolationClass(brokenManifestLineageScratch, 'D4'));
+	probe('fixture harness exact violation class', !hasExactViolationClass(['fixture: D2 wrong-class-only finding'], 'D4')
+		&& !hasExactViolationClass(['harness: D4 internal validator defect'], 'D4')
+		&& hasExactViolationClass(['fixture: D4 expected finding'], 'D4'));
 	const cycleProbe = () => {
 		const scratchErrors = [];
 		evaluateRevisionBundle({

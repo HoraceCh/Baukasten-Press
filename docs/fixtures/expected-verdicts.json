@@ -35,7 +35,7 @@
 		{ "fixture": "docs/fixtures/skill-lineage/valid-supersession-rollback.json", "verdict": "VALID", "violation_class": null, "context": null },
 		{ "fixture": "docs/fixtures/skill-manifest/derived-copy-new-identity.json", "verdict": "VALID", "violation_class": null, "context": null },
 		{ "fixture": "docs/fixtures/skill-manifest/fix-lineage.json", "verdict": "VALID", "violation_class": null, "context": null },
-		{ "fixture": "docs/fixtures/skill-manifest/invalid-broken-lineage.json", "verdict": "INVALID", "violation_class": "D2", "context": { "lineageParentResolutionScope": "directory" } },
+		{ "fixture": "docs/fixtures/skill-manifest/invalid-broken-lineage.json", "verdict": "INVALID", "violation_class": "D4", "context": { "lineageParentResolutionScope": "directory" } },
 		{ "fixture": "docs/fixtures/skill-manifest/invalid-duplicate-id.json", "verdict": "INVALID", "violation_class": "D1", "context": { "duplicatesFixture": "docs/fixtures/skill-manifest/valid-canonical.json" } },
 		{ "fixture": "docs/fixtures/skill-manifest/invalid-missing-provenance.json", "verdict": "INVALID", "violation_class": "D3", "context": null },
 		{ "fixture": "docs/fixtures/skill-manifest/rename-after.json", "verdict": "VALID", "violation_class": null, "context": null },

@@ -24,16 +24,16 @@ The validator detects the frozen violation classes without reinterpreting them:
 
 | Contract | Classes | Mechanism |
 | --- | --- | --- |
-| BAP-51 | D1–D7 | Manifest structural evaluation + directory-scoped lineage-parent resolution + D1 contextual duplicate detection via declared duplicate target. |
+| BAP-51 | D1–D7 | Manifest structural evaluation + directory-scoped lineage-parent resolution (including D4 broken lineage) + D1 contextual duplicate detection via declared duplicate target. |
 | BAP-52 | A3/A4 structural rules | Environment Compatibility Declaration schema evaluation + host-context compatibility checks (`unknown` fails closed). Promotion/demotion gate shape checks (P1/P2/P4 presence; agents propose only). |
 | BAP-53 | E1–E9 | Evidence record conditional-field evaluation, quality-record schema, redaction eligibility, link-resolution scan across inline and standalone quality records. |
 | BAP-54 | L1–L7 | Revision bundle graph evaluation: resolvability, acyclicity, self-parenting, FIX identity preservation, DERIVED identity minting, content-hash collision, retired reactivation, CAPTURED guardrail prerequisites. |
 
-Relational classes that cannot be decided from a single standalone record (D1 contextual duplicates, E3 admission, E6 external links) are enforced through bundled records, declared deterministic context inputs in `expected-verdicts.json`, and built-in self-test probes.
+Relational classes that cannot be decided from a single standalone record (D1 contextual duplicates, D4 manifest-parent resolution, E3 admission, E6 external links) are enforced through bundled records, declared deterministic context inputs in `expected-verdicts.json`, and built-in self-test probes. The harness requires every invalid fixture to name a nonempty exact violation class and every valid fixture to name `null`; unrelated findings cannot satisfy an expected class.
 
 ## 4. Self-test probes
 
-Every validator run executes deterministic in-memory probes asserting that each core detector catches its synthetic violating case (D1, D3, L1, L2, L5, L7, A4). A probe miss is itself a validator defect and fails the run. Probes are internal evaluator invariants — never a second authority.
+Every validator run executes deterministic in-memory probes asserting that each core detector catches its synthetic violating case (D1, D3, D4, L1, L2, L5, L7, A4), including exact-class matching. A probe miss is itself a validator defect and fails the run. Probes are internal evaluator invariants — never a second authority.
 
 ## 5. Failure behavior
 
