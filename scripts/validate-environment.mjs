@@ -17,7 +17,10 @@ const exactKeys = (value, expected) => value !== null && typeof value === 'objec
 const emptyObject = (value) => exactKeys(value, []);
 const sameStrings = (actual, expected) => Array.isArray(actual) && actual.length === expected.length && actual.every((value, index) => value === expected[index]);
 const isStringList = (value) => Array.isArray(value) && value.length > 0 && value.every((entry) => typeof entry === 'string' && entry.length > 0) && new Set(value).size === value.length;
-const normalizePath = (value) => value.replaceAll('/', '\\').replace(/\\+$/, '').toLowerCase();
+const normalizePath = (value, platform) => {
+	const normalized = platform === 'win32' ? value.replaceAll('/', '\\').replace(/\\+$/, '').toLowerCase() : value.replace(/\/+$/, '');
+	return normalized;
+};
 const fail = (code) => SAFE_CODES.has(code) ? code : 'CONFIG_INVALID';
 const exactEntries = (value, expected) => exactKeys(value, Object.keys(expected)) && Object.entries(expected).every(([key, entry]) => value[key] === entry);
 const canonicalEnvironmentGitQueries = Object.freeze([
@@ -48,7 +51,7 @@ export function validateAuthority(authority) {
 	if (!exactKeys(required, ['environment', 'repository', 'toolchain', 'paths', 'profile', 'capabilities']) || Object.values(required).some((keys) => !isStringList(keys))) return fail('CONFIG_SCHEMA_INVALID');
 	const environment = authority.environment;
 	if (!exactKeys(environment, required.environment) || !emptyObject(environment.optional) || !emptyObject(environment.default) || !emptyObject(environment.envVariables) || !emptyObject(environment.secrets)) return fail('CONFIG_SCHEMA_INVALID');
-	if (!exactKeys(environment.repository, required.repository) || typeof environment.repository.root !== 'string' || environment.repository.root.length === 0 || typeof environment.repository.slug !== 'string' || environment.repository.slug.length === 0) return fail('CONFIG_SCHEMA_INVALID');
+	if (!exactKeys(environment.repository, required.repository) || !exactKeys(environment.repository.root, ['windows', 'linux']) || Object.values(environment.repository.root).some((root) => typeof root !== 'string' || root.length === 0) || typeof environment.repository.slug !== 'string' || environment.repository.slug.length === 0) return fail('CONFIG_SCHEMA_INVALID');
 	const ciRootPolicy = environment.repository.ciRootPolicy;
 	if (!exactKeys(ciRootPolicy, ['metadata', 'trackedAllowlist']) || !exactEntries(ciRootPolicy.metadata, { CI: 'true', GITHUB_ACTIONS: 'true', GITHUB_REPOSITORY: environment.repository.slug, GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main', RUNNER_ENVIRONMENT: 'github-hosted', RUNNER_OS: 'Linux' }) || !sameStrings(ciRootPolicy.trackedAllowlist, ['.github/workflows/pr-validation.yml'])) return fail('CONFIG_SCHEMA_INVALID');
 	const toolchain = environment.toolchain;
@@ -101,23 +104,26 @@ function sameDependencySection(left, right, name) {
 	return exactKeys(a, Object.keys(b)) && Object.keys(a).every((key) => a[key] === b[key]);
 }
 
-export async function validateEnvironment({ authorityText, configText, root = repositoryRoot, currentDirectory = process.cwd(), environment = process.env, nodeVersion = process.versions.node, readText = (file) => readFile(file, 'utf8'), validateOpenCode = validateOpenCodeGovernance, run = (command, argumentsList) => runExactNpm(command, argumentsList, root), gitRun = (command, argumentsList) => runExactGit(command, argumentsList, root) } = {}) {
+export async function validateEnvironment({ authorityText, configText, root = repositoryRoot, currentDirectory = process.cwd(), environment = process.env, nodeVersion = process.versions.node, platform = process.platform, readText = (file) => readFile(file, 'utf8'), validateOpenCode = validateOpenCodeGovernance, run = (command, argumentsList) => runExactNpm(command, argumentsList, root), gitRun = (command, argumentsList) => runExactGit(command, argumentsList, root) } = {}) {
 	if (Object.keys(environment).some((name) => /^baukasten_press_/i.test(name))) return fail('ENVIRONMENT_VARIABLE_FORBIDDEN');
 	let authority; let example;
 	try { authority = parseStrictJson(authorityText); example = parseStrictJson(configText); } catch { return fail('CONFIG_INVALID'); }
 	const authorityResult = validateAuthority(authority); if (authorityResult) return authorityResult;
 	const exampleResult = validateExample(example, authority); if (exampleResult) return exampleResult;
 	const { repository, toolchain, paths } = authority.environment;
+	const localRoot = platform === 'win32' ? repository.root.windows : platform === 'linux' ? repository.root.linux : null;
+	if (localRoot === null) return fail('REPOSITORY_ROOT_INVALID');
 	const ci = ciMetadataMatches(environment, repository.ciRootPolicy);
+	if (ci && platform !== 'linux') return fail('CI_METADATA_INVALID');
 	if (!ci && Object.keys(environment).some((name) => ['CI', 'GITHUB_ACTIONS', 'GITHUB_REPOSITORY', 'GITHUB_EVENT_NAME', 'GITHUB_BASE_REF', 'RUNNER_ENVIRONMENT', 'RUNNER_OS', 'GITHUB_WORKSPACE'].includes(name))) return fail('CI_METADATA_INVALID');
-	if (!ci && normalizePath(root) !== normalizePath(repository.root)) return fail('REPOSITORY_ROOT_INVALID');
-	if (!ci && normalizePath(currentDirectory) !== normalizePath(repository.root)) return fail('REPOSITORY_CWD_INVALID');
-	if (ci && (normalizePath(environment.GITHUB_WORKSPACE) !== normalizePath(root) || normalizePath(currentDirectory) !== normalizePath(root))) return fail('CI_WORKSPACE_INVALID');
+	if (!ci && normalizePath(root, platform) !== normalizePath(localRoot, platform)) return fail('REPOSITORY_ROOT_INVALID');
+	if (!ci && normalizePath(currentDirectory, platform) !== normalizePath(localRoot, platform)) return fail('REPOSITORY_CWD_INVALID');
+	if (ci && (normalizePath(environment.GITHUB_WORKSPACE, platform) !== normalizePath(root, platform) || normalizePath(currentDirectory, platform) !== normalizePath(root, platform))) return fail('CI_WORKSPACE_INVALID');
 	if (nodeVersion !== toolchain.node) return fail('NODE_VERSION_INVALID');
 	const invokeGit = gitRun;
 	let origin; let topLevel; let npmVersion; let status;
 	try { [origin, topLevel, npmVersion, status] = await Promise.all([invokeGit('git', ['config', '--get', 'remote.origin.url']), invokeGit('git', ['rev-parse', '--show-toplevel']), run('npm', ['--version']), invokeGit('git', ['status', '--short'])]); } catch { return fail('COMMAND_FAILED'); }
-	if (normalizePath(topLevel) !== normalizePath(ci ? root : repository.root)) return fail('REPOSITORY_TOPLEVEL_INVALID');
+	if (normalizePath(topLevel, platform) !== normalizePath(ci ? root : localRoot, platform)) return fail('REPOSITORY_TOPLEVEL_INVALID');
 	if (ci && status.trim() !== '') return fail('CI_WORKTREE_INVALID');
 	if (!validOrigin(origin, repository.slug)) return fail('REPOSITORY_ORIGIN_INVALID');
 	if (npmVersion !== toolchain.npm) return fail('NPM_VERSION_INVALID');
