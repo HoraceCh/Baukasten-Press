@@ -15,3 +15,9 @@ The validator enforces the canonical JSON authority. This document intentionally
 ## Governed WSL mutation evidence
 
 For a governed WSL mutation, the implementation mutation owner must be identifiable as `press_app_implementer`, and independent QA must prove its effective read-only sandbox. Governed staging, cached evidence, and commits use RTK transport. `bp_git_commit` is a non-default, narrow operation; it does not grant delivery or network authority. Push and pull-request actions remain separately authorized.
+
+## BP WSL Codex Execution Plane
+
+`bp-codex-exec`, a user/runtime launcher outside this repository, is the canonical BP WSL Codex Execution Plane entrypoint. It starts Codex with `features.apps=false`; ordinary `codex` is not the canonical entrypoint. The Execution Plane must expose no usable Linear authority. `codex mcp list` alone cannot prove that absence because Apps and connectors are a separate surface; actual runtime tool exposure is authoritative. If launcher, isolation, repository identity, or worktree admission cannot be established, the plane fails closed.
+
+Inspection and QA run read-only by default; workspace-write requires fresh Issue mutation authority. The launcher grants no Git metadata, delivery, provider, publication, vault, credential, or external authority, and the Execution Plane returns evidence only. The Trusted Governance Plane persists Linear evidence and owns status transitions.
