@@ -11,3 +11,7 @@ The local repository root remains mandatory and is explicitly pinned per platfor
 The project may persist plugin runtime data only through the later approved plugin boundary in the ignored `data.json` location. Build artifacts and local dependency/cache directories are likewise ignored exactly as listed by the environment contract. They are not sources of truth and must not be committed. Other persistent, generated, temporary, or cache locations require an explicit future contract.
 
 The validator enforces the canonical JSON authority. This document intentionally does not repeat version literals, package versions, or ignore patterns: read `config/environment-contract.json` for the exact contract facts. `package-lock.json` remains the sole dependency-resolution record; it is not an environment configuration file.
+
+## Governed WSL mutation evidence
+
+For a governed WSL mutation, the implementation mutation owner must be identifiable as `press_app_implementer`, and independent QA must prove its effective read-only sandbox. Governed staging, cached evidence, and commits use RTK transport. `bp_git_commit` is a non-default, narrow operation; it does not grant delivery or network authority. Push and pull-request actions remain separately authorized.
