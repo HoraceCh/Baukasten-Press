@@ -14,6 +14,7 @@ export const canonicalTypeScriptTests = Object.freeze([
 	'tests/publication-domain-contract.test.ts',
 	'tests/publication-state-machine.test.ts',
 	'tests/integration-contracts.test.ts',
+	'tests/publication-queue.test.ts',
 ]);
 export const environmentTest = 'tests/environment-contract.test.mjs';
 
@@ -24,6 +25,7 @@ export const canonicalChildPlan = Object.freeze([
 	Object.freeze({ testPath: outputRelativePath(canonicalTypeScriptTests[0]), failureCode: 'PUBLICATION_DOMAIN_TESTS_INVALID' }),
 	Object.freeze({ testPath: outputRelativePath(canonicalTypeScriptTests[1]), failureCode: 'PUBLICATION_STATE_MACHINE_TESTS_INVALID' }),
 	Object.freeze({ testPath: outputRelativePath(canonicalTypeScriptTests[2]), failureCode: 'INTEGRATION_TESTS_INVALID' }),
+	Object.freeze({ testPath: outputRelativePath(canonicalTypeScriptTests[3]), failureCode: 'PUBLICATION_QUEUE_TESTS_INVALID' }),
 ]);
 const childFailures = Object.freeze(Object.fromEntries(
 	canonicalChildPlan.map(({ failureCode }) => [failureCode, Object.freeze({ failureCode })]),

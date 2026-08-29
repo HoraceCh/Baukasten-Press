@@ -36,6 +36,7 @@ test('contract runner accepts no arguments and uses only the canonical contract 
 		'tests/publication-domain-contract.test.ts',
 		'tests/publication-state-machine.test.ts',
 		'tests/integration-contracts.test.ts',
+		'tests/publication-queue.test.ts',
 	]);
 	assert.equal(environmentTest, 'tests/environment-contract.test.mjs');
 });
@@ -62,6 +63,7 @@ test('contract child has fixed permissioned arguments and no user-provided paths
 		path.join('.npm-cache', 'contract-tests', 'publication-domain-contract.test.mjs'),
 		path.join('.npm-cache', 'contract-tests', 'publication-state-machine.test.mjs'),
 		path.join('.npm-cache', 'contract-tests', 'integration-contracts.test.mjs'),
+		path.join('.npm-cache', 'contract-tests', 'publication-queue.test.mjs'),
 	]);
 });
 
@@ -73,6 +75,7 @@ test('contract child plan is immutable and exactly maps the fixed canonical suit
 		{ testPath: path.join('.npm-cache', 'contract-tests', 'publication-domain-contract.test.mjs'), failureCode: 'PUBLICATION_DOMAIN_TESTS_INVALID' },
 		{ testPath: path.join('.npm-cache', 'contract-tests', 'publication-state-machine.test.mjs'), failureCode: 'PUBLICATION_STATE_MACHINE_TESTS_INVALID' },
 		{ testPath: path.join('.npm-cache', 'contract-tests', 'integration-contracts.test.mjs'), failureCode: 'INTEGRATION_TESTS_INVALID' },
+		{ testPath: path.join('.npm-cache', 'contract-tests', 'publication-queue.test.mjs'), failureCode: 'PUBLICATION_QUEUE_TESTS_INVALID' },
 	]);
 });
 

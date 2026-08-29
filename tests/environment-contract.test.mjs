@@ -15,13 +15,17 @@ const lockTextV2 = await readFile(path.join(repositoryRoot, 'package-lock.json')
 const ignoreTextV2 = await readFile(path.join(repositoryRoot, '.gitignore'), 'utf8');
 const opencodeTextV2 = await readFile(path.join(repositoryRoot, 'opencode.jsonc'), 'utf8');
 const sentinel = 'BAP41_SENTINEL_NEVER_ECHO';
+const windowsRoot = authority.environment.repository.root.windows;
+const linuxRoot = authority.environment.repository.root.linux;
 
 function cloneV2(value) { return JSON.parse(JSON.stringify(value)); }
 function options(overrides = {}) {
 	const tracked = ['AGENTS.md', 'README.md', 'config/environment-contract.json'];
-	const run = overrides.run ?? (async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : args.includes('ls-files') ? tracked.join('\n') : `https://github.com/${authority.environment.repository.slug}.git`);
+	const platform = overrides.platform ?? 'linux';
+	const selectedRoot = overrides.root ?? (platform === 'win32' ? windowsRoot : linuxRoot);
+	const run = overrides.run ?? (async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? selectedRoot : args.includes('ls-files') ? tracked.join('\n') : `https://github.com/${authority.environment.repository.slug}.git`);
 	return {
-		authorityText, configText: exampleText, root: authority.environment.repository.root, currentDirectory: authority.environment.repository.root, environment: {}, nodeVersion: authority.environment.toolchain.node,
+		authorityText, configText: exampleText, root: selectedRoot, currentDirectory: selectedRoot, environment: {}, nodeVersion: authority.environment.toolchain.node, platform,
 		readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2 : lockTextV2,
 		validateOpenCode: async ({ root, readText }) => validateOpenCodeConfigText(await readText(path.join(root, 'opencode.jsonc'))),
 		run, gitRun: overrides.gitRun ?? run,
@@ -118,13 +122,13 @@ test('authority and selector reject schema drift, escaped/duplicate keys, profil
 test('repository, lock, ignore, package mismatch, canaries, and override arguments fail closed without leaks', async () => {
 	assert.equal(await validateEnvironment(options({ root: 'F:\\Other' })), 'REPOSITORY_ROOT_INVALID');
 	assert.equal(await validateEnvironment(options({ currentDirectory: 'F:\\Other' })), 'REPOSITORY_CWD_INVALID');
-	const drift = cloneV2(authority); drift.environment.repository.root = 'F:\\Other';
+	const drift = cloneV2(authority); drift.environment.repository.root.linux = 'F:\\Other';
 	assert.equal(await validateEnvironment(options({ authorityText: JSON.stringify(drift) })), 'REPOSITORY_ROOT_INVALID');
-	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : args.includes('ls-files') ? 'rogue.tmp' : `https://token:${sentinel}@github.com/x/y` })), 'REPOSITORY_ORIGIN_INVALID');
+	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? linuxRoot : args.includes('ls-files') ? 'rogue.tmp' : `https://token:${sentinel}@github.com/x/y` })), 'REPOSITORY_ORIGIN_INVALID');
 	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? 'F:\\Other' : args.includes('ls-files') ? 'AGENTS.md' : `https://github.com/${authority.environment.repository.slug}` })), 'REPOSITORY_TOPLEVEL_INVALID');
 	assert.equal(await validateEnvironment(options({ environment: { bAuKaStEn_PrEsS_override: sentinel } })), 'ENVIRONMENT_VARIABLE_FORBIDDEN');
 	assert.equal(await validateEnvironment(options({ nodeVersion: '0.0.0' })), 'NODE_VERSION_INVALID');
-	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? '0.0.0' : args.includes('--show-toplevel') ? authority.environment.repository.root : args.includes('ls-files') ? 'AGENTS.md' : `https://github.com/${authority.environment.repository.slug}` })), 'NPM_VERSION_INVALID');
+	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? '0.0.0' : args.includes('--show-toplevel') ? linuxRoot : args.includes('ls-files') ? 'AGENTS.md' : `https://github.com/${authority.environment.repository.slug}` })), 'NPM_VERSION_INVALID');
 	const mismatch = parseStrictJson(lockTextV2); mismatch.packages[''].devDependencies.esbuild = 'bad';
 	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : JSON.stringify(mismatch) })), 'PACKAGE_LOCK_MISMATCH');
 	const missingTool = parseStrictJson(lockTextV2); delete missingTool.packages['node_modules/esbuild'];
@@ -132,9 +136,20 @@ test('repository, lock, ignore, package mismatch, canaries, and override argumen
 	const invalidTool = parseStrictJson(lockTextV2); invalidTool.packages['node_modules/esbuild'].version = 'not-a-version';
 	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : JSON.stringify(invalidTool) })), 'LOCKED_TOOL_INVALID');
 	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2.replace('data.json', 'not-data.json') : lockTextV2 })), 'IGNORE_POLICY_INVALID');
-	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : args.includes('ls-files') ? 'rogue.tmp' : `https://github.com/${authority.environment.repository.slug}` })), 'PATH_POLICY_INVALID');
+	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? linuxRoot : args.includes('ls-files') ? 'rogue.tmp' : `https://github.com/${authority.environment.repository.slug}` })), 'PATH_POLICY_INVALID');
 	assert.equal(await validateEnvironment(options({ configText: sentinel })), 'CONFIG_INVALID');
-	assert.equal(await validateEnvironment(options({ run: async (command, args) => args.includes('ls-files') ? Promise.reject(new Error(sentinel)) : command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? authority.environment.repository.root : `https://github.com/${authority.environment.repository.slug}` })), 'COMMAND_FAILED');
+	assert.equal(await validateEnvironment(options({ run: async (command, args) => args.includes('ls-files') ? Promise.reject(new Error(sentinel)) : command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? linuxRoot : `https://github.com/${authority.environment.repository.slug}` })), 'COMMAND_FAILED');
+});
+
+test('platform-specific local roots are explicit and unknown platforms fail closed', async () => {
+	assert.equal(await validateEnvironment(options({ platform: 'win32' })), null);
+	assert.equal(await validateEnvironment(options({ platform: 'linux' })), null);
+	assert.equal(await validateEnvironment(options({ platform: 'win32', root: 'F:\\Other', currentDirectory: 'F:\\Other' })), 'REPOSITORY_ROOT_INVALID');
+	assert.equal(await validateEnvironment(options({ platform: 'linux', root: '/tmp/other', currentDirectory: '/tmp/other' })), 'REPOSITORY_ROOT_INVALID');
+	assert.equal(await validateEnvironment(options({ platform: 'linux', root: linuxRoot.toUpperCase(), currentDirectory: linuxRoot })), 'REPOSITORY_ROOT_INVALID');
+	assert.equal(await validateEnvironment(options({ platform: 'linux', root: linuxRoot, currentDirectory: linuxRoot.toUpperCase() })), 'REPOSITORY_CWD_INVALID');
+	assert.equal(await validateEnvironment(options({ platform: 'linux', run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? linuxRoot.toUpperCase() : args.includes('ls-files') ? 'AGENTS.md' : `https://github.com/${authority.environment.repository.slug}` })), 'REPOSITORY_TOPLEVEL_INVALID');
+	assert.equal(await validateEnvironment(options({ platform: 'freebsd' })), 'REPOSITORY_ROOT_INVALID');
 });
 
 test('the alternate GitHub pull-request root requires exact execution identity and a clean canonical checkout', async () => {
@@ -147,6 +162,9 @@ test('the alternate GitHub pull-request root requires exact execution identity a
 	}
 	assert.equal(await validateEnvironment(ciOptions({ environment: { ...authority.environment.repository.ciRootPolicy.metadata, GITHUB_WORKSPACE: '/other' } })), 'CI_WORKSPACE_INVALID');
 	assert.equal(await validateEnvironment(ciOptions({ currentDirectory: '/other' })), 'CI_WORKSPACE_INVALID');
+	assert.equal(await validateEnvironment(ciOptions({ environment: { ...authority.environment.repository.ciRootPolicy.metadata, GITHUB_WORKSPACE: '/HOME/RUNNER/WORK/BAUKASTEN-PRESS/BAUKASTEN-PRESS' } })), 'CI_WORKSPACE_INVALID');
+	assert.equal(await validateEnvironment(ciOptions({ platform: 'freebsd' })), 'REPOSITORY_ROOT_INVALID');
+	assert.equal(await validateEnvironment(ciOptions({ platform: 'win32' })), 'CI_METADATA_INVALID');
 	assert.equal(await validateEnvironment(ciOptions({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? '/other' : args.includes('status') ? '' : args.includes('ls-files') ? '.github/workflows/pr-validation.yml' : `https://github.com/${authority.environment.repository.slug}.git` })), 'REPOSITORY_TOPLEVEL_INVALID');
 	assert.equal(await validateEnvironment(ciOptions({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? '/home/runner/work/Baukasten-Press/Baukasten-Press' : args.includes('status') ? '' : args.includes('ls-files') ? '.github/workflows/pr-validation.yml' : `https://token:${sentinel}@github.com/x/y` })), 'REPOSITORY_ORIGIN_INVALID');
 	assert.equal(await validateEnvironment(ciOptions({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? '/home/runner/work/Baukasten-Press/Baukasten-Press' : args.includes('status') ? ' M README.md' : args.includes('ls-files') ? '.github/workflows/pr-validation.yml' : `https://github.com/${authority.environment.repository.slug}.git` })), 'CI_WORKTREE_INVALID');

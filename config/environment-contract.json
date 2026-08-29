@@ -11,7 +11,10 @@
   },
   "environment": {
     "repository": {
-      "root": "F:\\Projects\\Baukasten Press",
+      "root": {
+        "windows": "F:\\Projects\\Baukasten Press",
+        "linux": "/home/legion/projects/Baukasten-Press"
+      },
       "slug": "HoraceCh/Baukasten-Press",
       "ciRootPolicy": {
         "metadata": {

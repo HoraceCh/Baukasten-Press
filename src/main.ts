@@ -1,19 +1,20 @@
-import { MarkdownView, Notice, Plugin } from 'obsidian';
+import { MarkdownView, Notice, Plugin, TFile } from 'obsidian';
 
 import {
-	createEmptyPublicationQueueData,
-	enqueueSource,
-	parsePublicationQueueData,
-	type PublicationQueueDataV1,
+	PublicationQueue,
+	migrateLegacyPublicationQueue,
+	type SourceCapture,
 } from './application/publication-queue';
 
 export default class BaukastenPressPlugin extends Plugin {
-	private queueData: PublicationQueueDataV1 = createEmptyPublicationQueueData();
-	private queueWrite: Promise<void> = Promise.resolve();
+	private queue: PublicationQueue | null = null;
 
 	async onload(): Promise<void> {
 		try {
-			this.queueData = parsePublicationQueueData(await this.loadData());
+			const rawData: unknown = await this.loadData();
+			const data = await migrateLegacyPublicationQueue(rawData, (sourcePath) => this.captureSource(sourcePath));
+			this.queue = new PublicationQueue(data, { save: (next) => this.saveData(next) });
+			if (hasSchemaVersion(rawData, 1)) await this.saveData(data);
 		} catch (error) {
 			console.error('Baukasten Press could not load its publication queue.', error);
 			new Notice(
@@ -33,7 +34,7 @@ export default class BaukastenPressPlugin extends Plugin {
 				}
 
 				if (!checking) {
-					this.enqueueCurrentNote(activeFile.path);
+					void this.enqueueCurrentNote(activeFile);
 				}
 
 				return true;
@@ -41,27 +42,28 @@ export default class BaukastenPressPlugin extends Plugin {
 		});
 	}
 
-	private enqueueCurrentNote(sourcePath: string): void {
-		this.queueWrite = this.queueWrite
-			.then(async () => {
-				const result = enqueueSource(
-					this.queueData,
-					sourcePath,
-					new Date().toISOString(),
-				);
-
-				if (result.status === 'already-queued') {
-					new Notice(`已在待处理队列中：${sourcePath}`);
-					return;
-				}
-
-				await this.saveData(result.data);
-				this.queueData = result.data;
-				new Notice(`已加入待处理队列：${sourcePath}`);
-			})
-			.catch((error: unknown) => {
-				console.error('Baukasten Press could not add a note to its queue.', error);
-				new Notice(`未能加入待处理队列：${sourcePath}。队列未更改，请重试。`);
-			});
+	private async enqueueCurrentNote(file: TFile): Promise<void> {
+		if (!this.queue) return;
+		try {
+			const source = await this.captureSource(file.path);
+			const result = await this.queue.enqueue({ ...source, itemId: crypto.randomUUID(), sourceNoteRefId: crypto.randomUUID(), correlationId: crypto.randomUUID() });
+			new Notice(result === 'added' ? `已加入待处理队列：${file.path}` : `该修订已在队列中：${file.path}`);
+		} catch (error: unknown) {
+			console.error('Baukasten Press could not add a note to its queue.', error);
+			new Notice(`未能加入待处理队列：${file.path}。队列未更改，请重试。`);
+		}
 	}
+
+	private async captureSource(sourcePath: string): Promise<SourceCapture> {
+		const file = this.app.vault.getAbstractFileByPath(sourcePath);
+		if (!(file instanceof TFile)) throw new Error('source note is unavailable');
+		const content = await this.app.vault.read(file);
+		const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(content));
+		const contentHash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+		return { sourcePath, content, contentHash, capturedAt: new Date().toISOString() };
+	}
+}
+
+function hasSchemaVersion(value: unknown, version: number): value is { readonly schemaVersion: number } {
+	return typeof value === 'object' && value !== null && !Array.isArray(value) && 'schemaVersion' in value && value.schemaVersion === version;
 }
