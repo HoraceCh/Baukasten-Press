@@ -60,7 +60,7 @@ export default defineConfig(
 		},
 	},
 	{
-		files: ['tests/publication-domain-contract.test.ts', 'tests/publication-state-machine.test.ts', 'tests/integration-contracts.test.ts'],
+		files: ['tests/publication-domain-contract.test.ts', 'tests/publication-state-machine.test.ts', 'tests/integration-contracts.test.ts', 'tests/publication-queue.test.ts'],
 		extends: [tseslint.configs.disableTypeChecked],
 		languageOptions: {
 			globals: globals.node,
