@@ -12,11 +12,23 @@ Implementation mutation is limited to `git add <exact-relative-path>` or `git ad
 
 Commit commands fail closed when they use `-a`/`--all`, amend, no-verify, allow-empty, fixup/squash, signing, message reuse, or an evaluator. A Conventional Commit subject must carry the live BAP issue in its body or the completion evidence; the focused commit subject remains concise.
 
-Delivery mutation is separately human-authorized, operation-specific work. It includes push, remote-branch, pull-request, ruleset, and branch-protection operations; direct-main delivery is denied. BAP-39 supplies its own checks and does not inherit delivery authority from this document.
+Reconciliation mutation is a separate, narrowly scoped boundary. It does not inherit implementation or delivery authority and does not widen ordinary delivery. The only recognized command form is `rtk git pull --ff-only origin main`; general `pull`, a pull without `--ff-only`, another remote or branch, and every merge, rebase, reset, restore, checkout, force, or history-rewriting form remain denied.
+
+Before that exact reconciliation command may run, `authorizeReconciliationMutation` requires a fresh evidence bundle that proves all of the following together: explicit reconciliation authority; the canonical repository root; the exact canonical HTTPS origin; branch `main`; an empty worktree and index; lowercase 40-character approved starting and target SHAs; current `HEAD` equal to the starting SHA; the live `origin/main` value equal to the target SHA; verified ancestry from the starting SHA to the target SHA; and RTK as the transport. The exact command supplies the fast-forward-only, `origin`, and `main` facts. A missing, malformed, stale, or contradictory fact returns `RECONCILIATION_AUTHORIZATION_REQUIRED`. Delivery authority cannot substitute for reconciliation authority, and reconciliation authority cannot authorize delivery.
+
+The evidence collector must obtain repository identity, origin, branch, cleanliness, current `HEAD`, the live `origin/main` target, and ancestry through separately approved, literal RTK forms. The two additional read-only forms are exact: `rtk git ls-remote --heads origin refs/heads/main` for the live target and `rtk git merge-base --is-ancestor <starting-sha> <target-sha>` for ancestry, with both placeholders replaced by lowercase 40-character SHAs. Passing values into the authorization function records those verified facts; it is not permission to infer or synthesize them. The authorized target must be rechecked immediately before the exact reconciliation command so a changed remote target fails closed.
+
+Delivery mutation is separately human-authorized, operation-specific work. It includes push, remote-branch, pull-request, ruleset, and branch-protection operations; direct-main delivery is denied. BAP-39 supplies its own checks and does not inherit delivery or reconciliation authority from this document.
 
 The sole pull-request workflow is validated as an exact, pinned, least-privilege delivery surface. Its GitHub-hosted execution metadata is environment identity only: it does not widen Git, provider, credential, network, publication, vault, or external-write authority. Package installation and action setup there are ephemeral validation bootstrap, not a second authority or validation truth source.
 
 Destructive/history-rewriting and repository-topology commands are prohibited, including reset, clean, restore, checkout, stash, rebase, cherry-pick, force/history filters, rm/mv, ref/object mutation, reflog/gc/prune, init/clone, submodule, and worktree commands. A blocked or ambiguous command must not be substituted with a wrapper or script.
+
+## One-time stale-contract bootstrap
+
+A checkout whose committed Git-safety contract predates the reconciliation class may use a one-time bootstrap only to reach one exact approved canonical target. This is not a generic legacy bypass and does not authorize any other stale checkout or later reconciliation. Fresh external authority must name the exact local starting SHA and exact canonical target SHA. Before the bootstrap, the operator must prove a clean worktree and index, the canonical repository root and HTTPS origin, branch `main`, the exact local SHA, the live canonical `origin/main` target, ancestry from that local SHA to the target, and fast-forward-only semantics. The only permitted update form remains the exact externally transported `rtk git pull --ff-only origin main` command.
+
+If any bootstrap fact is absent or changes, stop without mutation. After the fast-forward, validate the newly active Git-safety contract before requesting any later Git operation. The bootstrap grants no implementation, delivery, merge, rebase, history-rewrite, push, or reusable reconciliation authority.
 
 ## Indirect callers and validation
 

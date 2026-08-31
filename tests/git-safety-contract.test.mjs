@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import test from 'node:test';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-import { auditIndirectCallers, auditPackageScripts, auditPrValidationWorkflow, auditRepository, authorizeDeliveryMutation, authorizeImplementationMutation, canonicalValidatorGitArguments, classifyGitArguments, policyPath, repositoryRoot, validateExactRelativePath, validatePolicy } from '../scripts/validate-git-safety.mjs';
+import { auditIndirectCallers, auditPackageScripts, auditPrValidationWorkflow, auditRepository, authorizeDeliveryMutation, authorizeImplementationMutation, authorizeReconciliationMutation, canonicalValidatorGitArguments, classifyGitArguments, policyPath, repositoryRoot, validateExactRelativePath, validatePolicy } from '../scripts/validate-git-safety.mjs';
 import { parseStrictJson } from '../scripts/validate-environment.mjs';
 
 const executeFile = promisify(execFile);
@@ -21,10 +21,11 @@ test('policy is exact, strict, and recognizes only the safe command forms', () =
 	assert.throws(() => parseStrictJson('{"contract\\u0056ersion":"1.0"}'));
 	assert.equal(validatePolicy({ ...policy, transport: 'git' }), 'POLICY_INVALID');
 	assert.equal(validatePolicy({ ...policy, extra: true }), 'POLICY_INVALID');
-	for (const command of [['status'], ['status', '--short'], ['diff'], ['diff', '--check'], ['diff', '--cached'], ['diff', '--cached', '--check'], ['diff', '--cached', '--name-status'], ['diff', '--cached', '--stat'], ['log', '-1'], ['show', 'HEAD'], ['rev-parse', '--show-toplevel'], ['rev-parse', 'HEAD'], ['config', '--get', 'remote.origin.url'], ['ls-files'], ['grep', 'BAP-38'], ['branch', '--show-current'], ['remote', 'get-url', 'origin']]) assert.equal(classifyGitArguments(command), 'read-only');
+	for (const command of [['status'], ['status', '--short'], ['diff'], ['diff', '--check'], ['diff', '--cached'], ['diff', '--cached', '--check'], ['diff', '--cached', '--name-status'], ['diff', '--cached', '--stat'], ['log', '-1'], ['show', 'HEAD'], ['rev-parse', '--show-toplevel'], ['rev-parse', 'HEAD'], ['config', '--get', 'remote.origin.url'], ['ls-files'], ['grep', 'BAP-38'], ['branch', '--show-current'], ['remote', 'get-url', 'origin'], ['ls-remote', '--heads', 'origin', 'refs/heads/main'], ['merge-base', '--is-ancestor', '1'.repeat(40), '2'.repeat(40)]]) assert.equal(classifyGitArguments(command), 'read-only');
 	assert.equal(classifyGitArguments(['add', 'docs/GIT_SAFETY.md']), 'implementation-mutation');
 	assert.equal(classifyGitArguments(['add', '-p', 'docs/GIT_SAFETY.md']), 'implementation-mutation');
 	assert.equal(classifyGitArguments(['commit', '-m', 'docs(git): define safety contract']), 'implementation-mutation');
+	assert.equal(classifyGitArguments(['pull', '--ff-only', 'origin', 'main']), 'reconciliation-mutation');
 	assert.equal(classifyGitArguments(['push']), 'delivery-mutation');
 	assert.equal(classifyGitArguments(['branch', 'topic']), 'delivery-mutation');
 });
@@ -49,7 +50,7 @@ test('paths and mutation/evaluator/history forms fail closed', () => {
 	assert.equal(validateExactRelativePath('.github/workflows/validate.yml'), true);
 	assert.equal(validateExactRelativePath('.agents/skills/baukasten-press-ui/SKILL.md'), true);
 	assert.equal(validateExactRelativePath('.codex/config.toml'), true);
-	for (const command of [['add', '.'], ['add', 'docs'], ['add', '-u'], ['add', '--update'], ['add', '--renormalize'], ['add', ':(top)README.md'], ['add', '--all'], ['add', '-N', 'docs/x.md'], ['commit', '-a', '-m', 'x'], ['commit', '--amend'], ['commit', '--no-verify', '-m', 'x'], ['commit', '-m', 'not conventional'], ['commit', '-m', 'x', 'docs/a.md'], ['diff', '--output=x'], ['diff', '--ext-diff'], ['diff', '--no-index', 'a', 'b'], ['show', '--textconv', 'HEAD'], ['status', '--porcelain=v2'], ['grep', '--cached', 'BAP'], ['reset', '--hard'], ['clean', '-fd'], ['restore', '.'], ['rebase', 'main'], ['git'], ['-C', '.', 'status'], ['status', 'GIT_DIR=x'], ['config', '--global', 'alias.x', 'status']]) assert.equal(classifyGitArguments(command), 'denied');
+	for (const command of [['add', '.'], ['add', 'docs'], ['add', '-u'], ['add', '--update'], ['add', '--renormalize'], ['add', ':(top)README.md'], ['add', '--all'], ['add', '-N', 'docs/x.md'], ['commit', '-a', '-m', 'x'], ['commit', '--amend'], ['commit', '--no-verify', '-m', 'x'], ['commit', '-m', 'not conventional'], ['commit', '-m', 'x', 'docs/a.md'], ['diff', '--output=x'], ['diff', '--ext-diff'], ['diff', '--no-index', 'a', 'b'], ['show', '--textconv', 'HEAD'], ['status', '--porcelain=v2'], ['grep', '--cached', 'BAP'], ['ls-remote', 'origin'], ['ls-remote', '--heads', 'upstream', 'refs/heads/main'], ['merge-base', '--is-ancestor', 'HEAD', 'origin/main'], ['pull'], ['pull', 'origin', 'main'], ['pull', '--ff-only', 'upstream', 'main'], ['pull', '--ff-only', 'origin', 'release'], ['pull', '--no-ff', 'origin', 'main'], ['reset', '--hard'], ['clean', '-fd'], ['restore', '.'], ['checkout', 'main'], ['rebase', 'main'], ['merge', 'origin/main'], ['push', '--force'], ['push', '--force-with-lease'], ['push', '-f'], ['git'], ['-C', '.', 'status'], ['status', 'GIT_DIR=x'], ['config', '--global', 'alias.x', 'status']]) assert.equal(classifyGitArguments(command), 'denied');
 });
 
 test('implementation mutation requires real regular-file evidence and the entire focused-commit bundle', async () => {
@@ -65,6 +66,43 @@ test('implementation mutation requires real regular-file evidence and the entire
 	assert.equal(await authorizeImplementationMutation({ ...base, qaStatus: 'FAIL' }), 'AUTHORIZATION_INVALID');
 	assert.equal(authorizeDeliveryMutation({ argumentsList: ['push'] }), 'DELIVERY_AUTHORIZATION_REQUIRED');
 	assert.equal(authorizeDeliveryMutation({ argumentsList: ['push'], explicitDeliveryAuthority: true }), null);
+});
+
+test('reconciliation is independently authorized by exact SHA-locked fast-forward evidence', async () => {
+	const startingSha = '1'.repeat(40);
+	const targetSha = '2'.repeat(40);
+	const base = {
+		argumentsList: ['pull', '--ff-only', 'origin', 'main'],
+		explicitReconciliationAuthority: true,
+		repositoryRootEvidence: await realpath(repositoryRoot),
+		originUrl: 'https://github.com/HoraceCh/Baukasten-Press.git',
+		currentBranch: 'main',
+		worktreeStatus: '',
+		indexStatus: '',
+		expectedStartingSha: startingSha,
+		expectedTargetSha: targetSha,
+		actualHeadSha: startingSha,
+		liveOriginMainSha: targetSha,
+		startingShaIsAncestor: true,
+		transport: 'rtk',
+	};
+	assert.equal(await authorizeReconciliationMutation(base), null);
+	for (const changed of [
+		{ worktreeStatus: ' M docs/GIT_SAFETY.md' },
+		{ indexStatus: 'M\tdocs/GIT_SAFETY.md' },
+		{ repositoryRootEvidence: path.join(repositoryRoot, 'docs') },
+		{ currentBranch: 'fix/bap-77' },
+		{ originUrl: 'git@github.com:HoraceCh/Baukasten-Press.git' },
+		{ actualHeadSha: '3'.repeat(40) },
+		{ expectedTargetSha: 'A'.repeat(40), liveOriginMainSha: 'A'.repeat(40) },
+		{ liveOriginMainSha: '3'.repeat(40) },
+		{ startingShaIsAncestor: false },
+		{ explicitReconciliationAuthority: false },
+		{ explicitReconciliationAuthority: undefined, explicitDeliveryAuthority: true },
+		{ transport: 'git' },
+	]) assert.equal(await authorizeReconciliationMutation({ ...base, ...changed }), 'RECONCILIATION_AUTHORIZATION_REQUIRED');
+	for (const argumentsList of [['pull'], ['pull', 'origin', 'main'], ['pull', '--ff-only', 'upstream', 'main'], ['pull', '--ff-only', 'origin', 'release'], ['pull', '--no-ff', 'origin', 'main']]) assert.equal(await authorizeReconciliationMutation({ ...base, argumentsList }), 'RECONCILIATION_AUTHORIZATION_REQUIRED');
+	assert.equal(authorizeDeliveryMutation({ argumentsList: base.argumentsList, explicitDeliveryAuthority: true }), 'DELIVERY_AUTHORIZATION_REQUIRED');
 });
 
 test('package has no lifecycle or hidden Git/evaluator mutation and retains the exact validator chain', () => {
