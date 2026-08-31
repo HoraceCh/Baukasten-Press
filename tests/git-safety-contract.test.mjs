@@ -123,10 +123,11 @@ test('nested Git-safety environment validation accepts only the minimized exact 
 		};
 	};
 	const validRun = exactCiRun();
-	assert.equal(await auditRepository({ environment, environmentRun: validRun, run: validRun }), null);
-	assert.equal(await auditRepository({ environment: { ...environment, GITHUB_BASE_REF: 'release' }, environmentRun: exactCiRun(), run: exactCiRun() }), 'ENVIRONMENT_CONTRACT_INVALID');
+	assert.equal(await auditRepository({ environment, environmentRun: validRun, run: validRun, environmentPlatform: 'linux' }), null);
+	assert.equal(await auditRepository({ environment, environmentRun: exactCiRun(), run: exactCiRun(), environmentPlatform: 'win32' }), 'ENVIRONMENT_CONTRACT_INVALID');
+	assert.equal(await auditRepository({ environment: { ...environment, GITHUB_BASE_REF: 'release' }, environmentRun: exactCiRun(), run: exactCiRun(), environmentPlatform: 'linux' }), 'ENVIRONMENT_CONTRACT_INVALID');
 	const failure = async () => { const error = new Error('post-environment failure'); error.code = 'EPERM'; throw error; };
-	assert.equal(await auditRepository({ environment, environmentRun: exactCiRun(), run: failure }), 'COMMAND_FAILED');
+	assert.equal(await auditRepository({ environment, environmentRun: exactCiRun(), run: failure, environmentPlatform: 'linux' }), 'COMMAND_FAILED');
 });
 
 test('repository audit rejects wildcard OpenCode Git permissions without exposing configuration', async () => {
