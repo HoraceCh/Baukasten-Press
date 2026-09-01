@@ -12,13 +12,16 @@ export { repositoryRoot };
 const executeFile = promisify(execFile);
 const scriptPath = fileURLToPath(import.meta.url);
 export const policyPath = path.join(repositoryRoot, 'config', 'git-safety-contract.json');
-export const safeFailureCodes = new Set(['ARGUMENTS_INVALID', 'POLICY_READ_FAILED', 'POLICY_INVALID', 'ENVIRONMENT_CONTRACT_INVALID', 'PACKAGE_INVALID', 'PACKAGE_SCRIPT_INVALID', 'GIT_ALIAS_INVALID', 'GIT_INCLUDE_INVALID', 'GIT_HOOK_INVALID', 'TRACKED_SURFACE_INVALID', 'INDIRECT_CALLER_INVALID', 'AUTHORIZATION_INVALID', 'DELIVERY_AUTHORIZATION_REQUIRED', 'COMMAND_FAILED']);
-const expectedPolicyKeys = ['contractVersion', 'repositoryAuthority', 'transport', 'validatorGitContext', 'commandClasses', 'implementationRequirements', 'prohibitedGitCommands', 'prohibitedGitArguments', 'approvedIndirectCallers', 'safeFailureCodes'];
-const expectedClasses = ['readOnly', 'implementationMutation', 'deliveryMutation'];
+export const safeFailureCodes = new Set(['ARGUMENTS_INVALID', 'POLICY_READ_FAILED', 'POLICY_INVALID', 'ENVIRONMENT_CONTRACT_INVALID', 'PACKAGE_INVALID', 'PACKAGE_SCRIPT_INVALID', 'GIT_ALIAS_INVALID', 'GIT_INCLUDE_INVALID', 'GIT_HOOK_INVALID', 'TRACKED_SURFACE_INVALID', 'INDIRECT_CALLER_INVALID', 'AUTHORIZATION_INVALID', 'RECONCILIATION_AUTHORIZATION_REQUIRED', 'DELIVERY_AUTHORIZATION_REQUIRED', 'COMMAND_FAILED']);
+const expectedPolicyKeys = ['contractVersion', 'repositoryAuthority', 'transport', 'validatorGitContext', 'commandClasses', 'implementationRequirements', 'reconciliationRequirements', 'prohibitedGitCommands', 'prohibitedGitArguments', 'approvedIndirectCallers', 'safeFailureCodes'];
+const expectedClasses = ['readOnly', 'implementationMutation', 'reconciliationMutation', 'deliveryMutation'];
 const expectedRequirements = ['explicitOperationAuthority', 'pressAppImplementer', 'liveBapIssue', 'exactPathAllowlist', 'unrelatedWorkPreserved', 'focusedValidation', 'independentQa', 'cachedDiffEvidence', 'linearCompletionEvidence'];
+const expectedReconciliationRequirements = ['explicitReconciliationAuthority', 'canonicalRepositoryRoot', 'canonicalHttpsOrigin', 'mainBranch', 'cleanWorktree', 'cleanIndex', 'expectedStartingSha', 'expectedTargetSha', 'headMatchesStartingSha', 'originMainMatchesTargetSha', 'startingShaIsAncestor', 'fastForwardOnly', 'originMain', 'rtkTransport'];
 const expectedProhibitedCommands = ['reset', 'clean', 'restore', 'checkout', 'stash', 'rebase', 'cherry-pick', 'merge', 'force', 'filter-branch', 'filter-repo', 'rm', 'mv', 'update-ref', 'replace', 'reflog', 'gc', 'prune', 'init', 'clone', 'submodule', 'worktree'];
-const expectedProhibitedArguments = ['-C', '--git-dir', '--work-tree', '-c', '--intent-to-add', '-N', '--all', '-a', '--amend', '--no-verify', '--allow-empty', '--fixup', '--squash', '-S', '--gpg-sign'];
+const expectedProhibitedArguments = ['-C', '--git-dir', '--work-tree', '-c', '--intent-to-add', '-N', '--all', '-a', '--amend', '--no-verify', '--allow-empty', '--fixup', '--squash', '-S', '--gpg-sign', '-f', '--force', '--force-with-lease'];
 const expectedIndirectCallers = ['scripts/validate-environment.mjs', 'scripts/validate-git-safety.mjs', 'tests/git-safety-contract.test.mjs'];
+const canonicalOrigin = 'https://github.com/HoraceCh/Baukasten-Press.git';
+const exactSha = /^[0-9a-f]{40}$/;
 const ignoredPathPatterns = Object.freeze(['.vscode/', '.idea/', '.npm-cache/', 'node_modules/', 'data.json', 'main.js', '.DS_Store', 'Thumbs.db']);
 const prWorkflowDirectory = path.join('.github', 'workflows');
 const prWorkflowName = 'pr-validation.yml';
@@ -72,10 +75,10 @@ export async function auditPrValidationWorkflow({ root = repositoryRoot, readTex
 }
 
 export function validatePolicy(policy) {
-	if (!exactKeys(policy, expectedPolicyKeys) || policy.contractVersion !== '1.0' || policy.repositoryAuthority !== 'config/environment-contract.json' || policy.transport !== 'rtk') return fail('POLICY_INVALID');
+	if (!exactKeys(policy, expectedPolicyKeys) || policy.contractVersion !== '1.1' || policy.repositoryAuthority !== 'config/environment-contract.json' || policy.transport !== 'rtk') return fail('POLICY_INVALID');
 	if (!exactKeys(policy.validatorGitContext, ['safeDirectory', 'environment', 'shell']) || policy.validatorGitContext.safeDirectory !== 'canonical-root' || policy.validatorGitContext.environment !== 'empty' || policy.validatorGitContext.shell !== false) return fail('POLICY_INVALID');
-	if (!exactKeys(policy.commandClasses, expectedClasses) || !equalStrings(policy.commandClasses.readOnly, ['status', 'diff', 'log', 'show', 'rev-parse', 'config --get', 'ls-files', 'grep', 'branch --show-current', 'remote get-url origin']) || !equalStrings(policy.commandClasses.implementationMutation, ['add <exact-relative-path>', 'add -p <exact-relative-path>', 'commit -m <conventional-subject>']) || !equalStrings(policy.commandClasses.deliveryMutation, ['push', 'switch', 'branch', 'remote branch', 'pull request', 'ruleset', 'branch protection'])) return fail('POLICY_INVALID');
-	if (!equalStrings(policy.implementationRequirements, expectedRequirements) || !equalStrings(policy.prohibitedGitCommands, expectedProhibitedCommands) || !equalStrings(policy.prohibitedGitArguments, expectedProhibitedArguments) || !equalStrings(policy.approvedIndirectCallers, expectedIndirectCallers) || !equalStrings(policy.safeFailureCodes, [...safeFailureCodes])) return fail('POLICY_INVALID');
+	if (!exactKeys(policy.commandClasses, expectedClasses) || !equalStrings(policy.commandClasses.readOnly, ['status', 'diff', 'log', 'show', 'rev-parse', 'config --get', 'ls-files', 'grep', 'branch --show-current', 'remote get-url origin', 'ls-remote --heads origin refs/heads/main', 'merge-base --is-ancestor <sha> <sha>']) || !equalStrings(policy.commandClasses.implementationMutation, ['add <exact-relative-path>', 'add -p <exact-relative-path>', 'commit -m <conventional-subject>']) || !equalStrings(policy.commandClasses.reconciliationMutation, ['pull --ff-only origin main']) || !equalStrings(policy.commandClasses.deliveryMutation, ['push', 'switch', 'branch', 'remote branch', 'pull request', 'ruleset', 'branch protection'])) return fail('POLICY_INVALID');
+	if (!equalStrings(policy.implementationRequirements, expectedRequirements) || !equalStrings(policy.reconciliationRequirements, expectedReconciliationRequirements) || !equalStrings(policy.prohibitedGitCommands, expectedProhibitedCommands) || !equalStrings(policy.prohibitedGitArguments, expectedProhibitedArguments) || !equalStrings(policy.approvedIndirectCallers, expectedIndirectCallers) || !equalStrings(policy.safeFailureCodes, [...safeFailureCodes])) return fail('POLICY_INVALID');
 	return null;
 }
 
@@ -109,8 +112,11 @@ export function classifyGitArguments(argumentsList) {
 	if (command === 'branch' && exact(rest, ['--show-current'])) return 'read-only';
 	if (command === 'remote' && exact(rest, ['get-url', 'origin'])) return 'read-only';
 	if (command === 'config' && exact(rest, ['--get', 'remote.origin.url'])) return 'read-only';
+	if (command === 'ls-remote' && exact(rest, ['--heads', 'origin', 'refs/heads/main'])) return 'read-only';
+	if (command === 'merge-base' && rest.length === 3 && rest[0] === '--is-ancestor' && exactSha.test(rest[1]) && exactSha.test(rest[2])) return 'read-only';
 	if (command === 'add' && ((rest.length === 1 && validateExactRelativePath(rest[0])) || (rest.length === 2 && rest[0] === '-p' && validateExactRelativePath(rest[1])))) return 'implementation-mutation';
 	if (command === 'commit' && rest.length === 2 && rest[0] === '-m' && conventionalSubject.test(rest[1])) return 'implementation-mutation';
+	if (command === 'pull' && exact(rest, ['--ff-only', 'origin', 'main'])) return 'reconciliation-mutation';
 	if (['push', 'switch', 'branch'].includes(command)) return 'delivery-mutation';
 	return 'denied';
 }
@@ -121,6 +127,26 @@ export async function authorizeImplementationMutation({ argumentsList, explicitO
 	try { resolvedRoot = await realpath(root); for (const entry of ownedPaths) { const candidate = path.resolve(root, entry); if (!candidate.startsWith(`${path.resolve(root)}${path.sep}`)) return fail('AUTHORIZATION_INVALID'); const details = await lstat(candidate); if (!details.isFile() || details.isSymbolicLink() || !((await realpath(candidate)).startsWith(`${resolvedRoot}${path.sep}`))) return fail('AUTHORIZATION_INVALID'); } } catch { return fail('AUTHORIZATION_INVALID'); }
 	const pathArgument = argumentsList[0] === 'add' ? argumentsList.at(-1) : null;
 	return pathArgument !== null && (!ownedPaths.includes(pathArgument) || !requestedPaths.includes(pathArgument)) ? fail('AUTHORIZATION_INVALID') : null;
+}
+
+export async function authorizeReconciliationMutation({ argumentsList, explicitReconciliationAuthority, repositoryRootEvidence, originUrl, currentBranch, worktreeStatus, indexStatus, expectedStartingSha, expectedTargetSha, actualHeadSha, liveOriginMainSha, startingShaIsAncestor, transport, root = repositoryRoot } = {}) {
+	let resolvedRoot; let resolvedCanonicalRoot;
+	try { [resolvedRoot, resolvedCanonicalRoot] = await Promise.all([realpath(root), realpath(repositoryRoot)]); } catch { return fail('RECONCILIATION_AUTHORIZATION_REQUIRED'); }
+	const authorized = classifyGitArguments(argumentsList) === 'reconciliation-mutation'
+		&& explicitReconciliationAuthority === true
+		&& resolvedRoot === resolvedCanonicalRoot
+		&& repositoryRootEvidence === resolvedCanonicalRoot
+		&& originUrl === canonicalOrigin
+		&& currentBranch === 'main'
+		&& worktreeStatus === ''
+		&& indexStatus === ''
+		&& exactSha.test(expectedStartingSha ?? '')
+		&& exactSha.test(expectedTargetSha ?? '')
+		&& actualHeadSha === expectedStartingSha
+		&& liveOriginMainSha === expectedTargetSha
+		&& startingShaIsAncestor === true
+		&& transport === 'rtk';
+	return authorized ? null : fail('RECONCILIATION_AUTHORIZATION_REQUIRED');
 }
 
 export function authorizeDeliveryMutation({ argumentsList, explicitDeliveryAuthority } = {}) {
