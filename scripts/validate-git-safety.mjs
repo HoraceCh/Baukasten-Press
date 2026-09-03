@@ -12,11 +12,12 @@ export { repositoryRoot };
 const executeFile = promisify(execFile);
 const scriptPath = fileURLToPath(import.meta.url);
 export const policyPath = path.join(repositoryRoot, 'config', 'git-safety-contract.json');
-export const safeFailureCodes = new Set(['ARGUMENTS_INVALID', 'POLICY_READ_FAILED', 'POLICY_INVALID', 'ENVIRONMENT_CONTRACT_INVALID', 'PACKAGE_INVALID', 'PACKAGE_SCRIPT_INVALID', 'GIT_ALIAS_INVALID', 'GIT_INCLUDE_INVALID', 'GIT_HOOK_INVALID', 'TRACKED_SURFACE_INVALID', 'INDIRECT_CALLER_INVALID', 'AUTHORIZATION_INVALID', 'RECONCILIATION_AUTHORIZATION_REQUIRED', 'DELIVERY_AUTHORIZATION_REQUIRED', 'COMMAND_FAILED']);
-const expectedPolicyKeys = ['contractVersion', 'repositoryAuthority', 'transport', 'validatorGitContext', 'commandClasses', 'implementationRequirements', 'reconciliationRequirements', 'prohibitedGitCommands', 'prohibitedGitArguments', 'approvedIndirectCallers', 'safeFailureCodes'];
-const expectedClasses = ['readOnly', 'implementationMutation', 'reconciliationMutation', 'deliveryMutation'];
+export const safeFailureCodes = new Set(['ARGUMENTS_INVALID', 'POLICY_READ_FAILED', 'POLICY_INVALID', 'ENVIRONMENT_CONTRACT_INVALID', 'PACKAGE_INVALID', 'PACKAGE_SCRIPT_INVALID', 'GIT_ALIAS_INVALID', 'GIT_INCLUDE_INVALID', 'GIT_HOOK_INVALID', 'TRACKED_SURFACE_INVALID', 'INDIRECT_CALLER_INVALID', 'AUTHORIZATION_INVALID', 'RECONCILIATION_PREPARATION_AUTHORIZATION_REQUIRED', 'RECONCILIATION_PREPARATION_POSTCONDITION_REQUIRED', 'RECONCILIATION_AUTHORIZATION_REQUIRED', 'DELIVERY_AUTHORIZATION_REQUIRED', 'COMMAND_FAILED']);
+const expectedPolicyKeys = ['contractVersion', 'repositoryAuthority', 'transport', 'validatorGitContext', 'commandClasses', 'implementationRequirements', 'reconciliationPreparationRequirements', 'reconciliationRequirements', 'prohibitedGitCommands', 'prohibitedGitArguments', 'approvedIndirectCallers', 'safeFailureCodes'];
+const expectedClasses = ['readOnly', 'implementationMutation', 'reconciliationPreparationMutation', 'reconciliationMutation', 'deliveryMutation'];
 const expectedRequirements = ['explicitOperationAuthority', 'pressAppImplementer', 'liveBapIssue', 'exactPathAllowlist', 'unrelatedWorkPreserved', 'focusedValidation', 'independentQa', 'cachedDiffEvidence', 'linearCompletionEvidence'];
 const expectedReconciliationRequirements = ['explicitReconciliationAuthority', 'canonicalRepositoryRoot', 'canonicalHttpsOrigin', 'mainBranch', 'cleanWorktree', 'cleanIndex', 'expectedStartingSha', 'expectedTargetSha', 'headMatchesStartingSha', 'originMainMatchesTargetSha', 'startingShaIsAncestor', 'fastForwardOnly', 'originMain', 'rtkTransport'];
+const expectedPreparationRequirements = ['explicitReconciliationPreparationAuthority', 'canonicalRepositoryRoot', 'canonicalHttpsOrigin', 'mainBranch', 'cleanWorktree', 'cleanIndex', 'expectedStartingSha', 'expectedTargetSha', 'headMatchesStartingSha', 'originMainMatchesTargetSha', 'rtkTransport'];
 const expectedProhibitedCommands = ['reset', 'clean', 'restore', 'checkout', 'stash', 'rebase', 'cherry-pick', 'merge', 'force', 'filter-branch', 'filter-repo', 'rm', 'mv', 'update-ref', 'replace', 'reflog', 'gc', 'prune', 'init', 'clone', 'submodule', 'worktree'];
 const expectedProhibitedArguments = ['-C', '--git-dir', '--work-tree', '-c', '--intent-to-add', '-N', '--all', '-a', '--amend', '--no-verify', '--allow-empty', '--fixup', '--squash', '-S', '--gpg-sign', '-f', '--force', '--force-with-lease'];
 const expectedIndirectCallers = ['scripts/validate-environment.mjs', 'scripts/validate-git-safety.mjs', 'tests/git-safety-contract.test.mjs'];
@@ -75,10 +76,10 @@ export async function auditPrValidationWorkflow({ root = repositoryRoot, readTex
 }
 
 export function validatePolicy(policy) {
-	if (!exactKeys(policy, expectedPolicyKeys) || policy.contractVersion !== '1.1' || policy.repositoryAuthority !== 'config/environment-contract.json' || policy.transport !== 'rtk') return fail('POLICY_INVALID');
+	if (!exactKeys(policy, expectedPolicyKeys) || policy.contractVersion !== '1.2' || policy.repositoryAuthority !== 'config/environment-contract.json' || policy.transport !== 'rtk') return fail('POLICY_INVALID');
 	if (!exactKeys(policy.validatorGitContext, ['safeDirectory', 'environment', 'shell']) || policy.validatorGitContext.safeDirectory !== 'canonical-root' || policy.validatorGitContext.environment !== 'empty' || policy.validatorGitContext.shell !== false) return fail('POLICY_INVALID');
-	if (!exactKeys(policy.commandClasses, expectedClasses) || !equalStrings(policy.commandClasses.readOnly, ['status', 'diff', 'log', 'show', 'rev-parse', 'config --get', 'ls-files', 'grep', 'branch --show-current', 'remote get-url origin', 'ls-remote --heads origin refs/heads/main', 'merge-base --is-ancestor <sha> <sha>']) || !equalStrings(policy.commandClasses.implementationMutation, ['add <exact-relative-path>', 'add -p <exact-relative-path>', 'commit -m <conventional-subject>']) || !equalStrings(policy.commandClasses.reconciliationMutation, ['pull --ff-only origin main']) || !equalStrings(policy.commandClasses.deliveryMutation, ['push', 'switch', 'branch', 'remote branch', 'pull request', 'ruleset', 'branch protection'])) return fail('POLICY_INVALID');
-	if (!equalStrings(policy.implementationRequirements, expectedRequirements) || !equalStrings(policy.reconciliationRequirements, expectedReconciliationRequirements) || !equalStrings(policy.prohibitedGitCommands, expectedProhibitedCommands) || !equalStrings(policy.prohibitedGitArguments, expectedProhibitedArguments) || !equalStrings(policy.approvedIndirectCallers, expectedIndirectCallers) || !equalStrings(policy.safeFailureCodes, [...safeFailureCodes])) return fail('POLICY_INVALID');
+	if (!exactKeys(policy.commandClasses, expectedClasses) || !equalStrings(policy.commandClasses.readOnly, ['status', 'diff', 'log', 'show', 'rev-parse', 'config --get', 'ls-files', 'grep', 'branch --show-current', 'remote get-url origin', 'ls-remote --heads origin refs/heads/main', 'merge-base --is-ancestor <sha> <sha>']) || !equalStrings(policy.commandClasses.implementationMutation, ['add <exact-relative-path>', 'add -p <exact-relative-path>', 'commit -m <conventional-subject>']) || !equalStrings(policy.commandClasses.reconciliationPreparationMutation, ['fetch --no-tags --no-write-fetch-head origin <sha>']) || !equalStrings(policy.commandClasses.reconciliationMutation, ['pull --ff-only origin main']) || !equalStrings(policy.commandClasses.deliveryMutation, ['push', 'switch', 'branch', 'remote branch', 'pull request', 'ruleset', 'branch protection'])) return fail('POLICY_INVALID');
+	if (!equalStrings(policy.implementationRequirements, expectedRequirements) || !equalStrings(policy.reconciliationPreparationRequirements, expectedPreparationRequirements) || !equalStrings(policy.reconciliationRequirements, expectedReconciliationRequirements) || !equalStrings(policy.prohibitedGitCommands, expectedProhibitedCommands) || !equalStrings(policy.prohibitedGitArguments, expectedProhibitedArguments) || !equalStrings(policy.approvedIndirectCallers, expectedIndirectCallers) || !equalStrings(policy.safeFailureCodes, [...safeFailureCodes])) return fail('POLICY_INVALID');
 	return null;
 }
 
@@ -114,6 +115,7 @@ export function classifyGitArguments(argumentsList) {
 	if (command === 'config' && exact(rest, ['--get', 'remote.origin.url'])) return 'read-only';
 	if (command === 'ls-remote' && exact(rest, ['--heads', 'origin', 'refs/heads/main'])) return 'read-only';
 	if (command === 'merge-base' && rest.length === 3 && rest[0] === '--is-ancestor' && exactSha.test(rest[1]) && exactSha.test(rest[2])) return 'read-only';
+	if (command === 'fetch' && rest.length === 4 && exact(rest.slice(0, 3), ['--no-tags', '--no-write-fetch-head', 'origin']) && exactSha.test(rest[3])) return 'reconciliation-preparation-mutation';
 	if (command === 'add' && ((rest.length === 1 && validateExactRelativePath(rest[0])) || (rest.length === 2 && rest[0] === '-p' && validateExactRelativePath(rest[1])))) return 'implementation-mutation';
 	if (command === 'commit' && rest.length === 2 && rest[0] === '-m' && conventionalSubject.test(rest[1])) return 'implementation-mutation';
 	if (command === 'pull' && exact(rest, ['--ff-only', 'origin', 'main'])) return 'reconciliation-mutation';
@@ -149,6 +151,41 @@ export async function authorizeReconciliationMutation({ argumentsList, explicitR
 	return authorized ? null : fail('RECONCILIATION_AUTHORIZATION_REQUIRED');
 }
 
+export async function authorizeReconciliationPreparationMutation({ argumentsList, explicitReconciliationPreparationAuthority, repositoryRootEvidence, originUrl, currentBranch, worktreeStatus, indexStatus, expectedStartingSha, expectedTargetSha, actualHeadSha, liveOriginMainSha, transport, root = repositoryRoot } = {}) {
+	let resolvedRoot; let resolvedCanonicalRoot;
+	try { [resolvedRoot, resolvedCanonicalRoot] = await Promise.all([realpath(root), realpath(repositoryRoot)]); } catch { return fail('RECONCILIATION_PREPARATION_AUTHORIZATION_REQUIRED'); }
+	const authorized = classifyGitArguments(argumentsList) === 'reconciliation-preparation-mutation'
+		&& explicitReconciliationPreparationAuthority === true
+		&& resolvedRoot === resolvedCanonicalRoot
+		&& repositoryRootEvidence === resolvedCanonicalRoot
+		&& originUrl === canonicalOrigin
+		&& currentBranch === 'main'
+		&& worktreeStatus === ''
+		&& indexStatus === ''
+		&& exactSha.test(expectedStartingSha ?? '')
+		&& exactSha.test(expectedTargetSha ?? '')
+		&& argumentsList[4] === expectedTargetSha
+		&& actualHeadSha === expectedStartingSha
+		&& liveOriginMainSha === expectedTargetSha
+		&& transport === 'rtk';
+	return authorized ? null : fail('RECONCILIATION_PREPARATION_AUTHORIZATION_REQUIRED');
+}
+
+export function authorizeReconciliationPreparationPostcondition({ expectedStartingSha, expectedTargetSha, targetObjectExists, actualHeadSha, currentBranch, worktreeStatus, indexStatus, refsUnchanged, fetchHeadUnchanged, liveOriginMainSha, startingShaIsAncestor } = {}) {
+	const proven = exactSha.test(expectedStartingSha ?? '')
+		&& exactSha.test(expectedTargetSha ?? '')
+		&& targetObjectExists === true
+		&& actualHeadSha === expectedStartingSha
+		&& currentBranch === 'main'
+		&& worktreeStatus === ''
+		&& indexStatus === ''
+		&& refsUnchanged === true
+		&& fetchHeadUnchanged === true
+		&& liveOriginMainSha === expectedTargetSha
+		&& startingShaIsAncestor === true;
+	return proven ? null : fail('RECONCILIATION_PREPARATION_POSTCONDITION_REQUIRED');
+}
+
 export function authorizeDeliveryMutation({ argumentsList, explicitDeliveryAuthority } = {}) {
 	return classifyGitArguments(argumentsList) === 'delivery-mutation' && explicitDeliveryAuthority === true ? null : fail('DELIVERY_AUTHORIZATION_REQUIRED');
 }
@@ -176,14 +213,38 @@ const internalGitQueries = new Set([
 const literalArray = (source) => [...source.matchAll(/(?:run|invokeGit|gitRun|runExactGit)\(\s*['"]git['"]\s*,\s*(\[(?:\s*['"][^'"]*['"]\s*,?\s*)*\])/g)].map((match) => JSON.parse(match[1].replaceAll("'", '"')));
 const exactEnvironmentGitTransport = (source) => /export async function runExactGit\(command, argumentsList, root, execute = executeFile\) \{\s*if \(command !== 'git'\) throw new Error\('COMMAND_FAILED'\);\s*return \(await execute\('git', canonicalEnvironmentGitArguments\(root, argumentsList\), \{ cwd: root, env: \{\}, shell: false \}\)\)\.stdout\.trim\(\);\s*\}/s.test(source);
 const executableSurface = (entry) => entry.endsWith('.mjs') && (!entry.includes('/') || entry.startsWith('scripts/') || entry.startsWith('tests/'));
-const fixtureInvocationCounts = new Map([['init', 1], ['config\u0000user.email\u0000fixture@example.invalid', 1], ['config\u0000user.name\u0000BAP-38 fixture', 1], ['add\u0000owned.txt', 2], ['add\u0000unrelated.txt', 1], ['commit\u0000-m\u0000test: create fixture', 1], ['commit\u0000-m\u0000test: stage exact path', 1], ['show\u0000--format=\u0000--name-only\u0000HEAD', 1], ['status\u0000--short', 2]]);
-
 function validFixtureInvocations(source) {
-	const invocations = [...source.matchAll(/\brun\(\s*([^)]*)\)/g)];
-	if (invocations.length !== 11 || invocations.some((match) => !/^\[(?:\s*['"][^'"]*['"]\s*,?\s*)*\]$/.test(match[1]))) return false;
-	const actual = new Map();
-	try { for (const match of invocations) { const key = JSON.parse(match[1].replaceAll("'", '"')).join('\u0000'); actual.set(key, (actual.get(key) ?? 0) + 1); } } catch { return false; }
-	return actual.size === fixtureInvocationCounts.size && [...fixtureInvocationCounts].every(([key, count]) => actual.get(key) === count);
+	const signature = "async function createDisposableGitFixture({ gitExecutor = executeFile } = {}) {";
+	const requiredConfinement = [
+		signature,
+		"const disposableRoot = await mkdtemp(path.join(tmpdir(), 'bap-78-git-safety-'));",
+		'const canonicalDisposableRoot = await realpath(disposableRoot);',
+		'const canonicalCwd = await realpath(cwd);',
+		'const confined = canonicalCwd === canonicalDisposableRoot || canonicalCwd.startsWith(`${canonicalDisposableRoot}${path.sep}`);',
+		"if (!confined) throw new Error('FIXTURE_CWD_OUTSIDE_DISPOSABLE_ROOT');",
+		"return gitExecutor('git', argumentsList, { cwd: canonicalCwd, shell: false, env: fixtureEnvironment });",
+		'cleanup: () => rm(canonicalDisposableRoot, { recursive: true, force: true })',
+	];
+	const helperStart = source.indexOf(signature);
+	const helperTail = helperStart === -1 ? '' : source.slice(helperStart);
+	const helperClose = helperTail.match(/\r?\n}\r?\n/);
+	if (!helperClose || helperClose.index === undefined) return false;
+	const helper = helperTail.slice(0, helperClose.index + helperClose[0].length);
+	let previous = -1;
+	for (const fragment of requiredConfinement) {
+		const current = helper.indexOf(fragment);
+		if (current <= previous) return false;
+		previous = current;
+	}
+	const processExecutions = source.match(/\b(?:execFile|executeFile|gitExecutor|execute|spawn|spawnSync|execFileSync|execSync)\s*\(/g) ?? [];
+	return /^\t\tif \(!confined\) throw new Error\('FIXTURE_CWD_OUTSIDE_DISPOSABLE_ROOT'\);\r?$/m.test(helper)
+		&& processExecutions.length === 1
+		&& processExecutions[0].startsWith('gitExecutor')
+		&& source.includes("fixture.runGit(checkout, ['fetch', '--no-tags', '--no-write-fetch-head', 'origin', target])")
+		&& !/const\s+inDirectory\s*=\s*\(directory,\s*args\)\s*=>/.test(source)
+		&& !/\b(?:run|inDirectory)\s*\(/.test(source)
+		&& !source.includes("run(['push'])")
+		&& !source.includes("run(['-C'");
 }
 
 export async function auditIndirectCallers(paths, { root = repositoryRoot, readText = (file) => readFile(file, 'utf8') } = {}) {
@@ -192,14 +253,13 @@ export async function auditIndirectCallers(paths, { root = repositoryRoot, readT
 		try { text = await readText(path.join(root, entry)); } catch { return fail('INDIRECT_CALLER_INVALID'); }
 		const executionText = text.replace(/readText:\s*async\s*\(\)\s*=>\s*(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '');
 		const calls = literalArray(executionText);
-		const hasDirectGit = /(?:run|invokeGit|gitRun|runExactGit|execFile|executeFile|execute)\(\s*['"]git['"]/.test(executionText);
+		const hasDirectGit = /(?:run|invokeGit|gitRun|runExactGit|execFile|executeFile|execute|gitExecutor)\(\s*['"]git['"]/.test(executionText);
 		const directGitCalls = executionText.match(/(?:execFile|executeFile|execute)\(\s*['"]git['"]/g) ?? [];
 		const environmentGitTransport = entry === 'scripts/validate-environment.mjs' && exactEnvironmentGitTransport(executionText);
-		const fixtureWrapper = entry === 'tests/git-safety-contract.test.mjs' && executionText.includes("executeFile('git', args, { cwd: fixture, shell: false") && executionText.includes("mkdtemp(path.join(tmpdir(), 'bap-38-git-safety-'))");
+		const fixtureWrapper = entry === 'tests/git-safety-contract.test.mjs' && executionText.includes('async function createDisposableGitFixture({ gitExecutor = executeFile } = {}) {');
 		if (!hasDirectGit && !fixtureWrapper) continue;
 		if (!expectedIndirectCallers.includes(entry)) return fail('INDIRECT_CALLER_INVALID');
 		if (fixtureWrapper) {
-			if ((executionText.match(/executeFile\('git', args, \{ cwd: fixture, shell: false/g) ?? []).length !== 1 || (executionText.match(/executeFile\(\s*['"]git['"]/g) ?? []).length !== 1 || /(?:execFile|execFileSync|spawn|spawnSync)\(\s*[^)]*\)/.test(executionText)) return fail('INDIRECT_CALLER_INVALID');
 			if (!validFixtureInvocations(executionText)) return fail('INDIRECT_CALLER_INVALID');
 		}
 		if (/(?:\beval\b|shell\s*:\s*true|exec\s*\()/i.test(executionText)) return fail('INDIRECT_CALLER_INVALID');
@@ -214,7 +274,7 @@ export async function auditIndirectCallers(paths, { root = repositoryRoot, readT
 	return null;
 }
 
-export async function auditRepository({ root = repositoryRoot, readText = (file) => readFile(file, 'utf8'), readDirectory, environment = deliveryEnvironment(process.env), environmentRun, run, environmentPlatform = process.platform } = {}) {
+export async function auditRepository({ root = repositoryRoot, readText = (file) => readFile(file, 'utf8'), readDirectory, environment = deliveryEnvironment(process.env), environmentRun, npmRun, run, environmentPlatform = process.platform } = {}) {
 	let policyText; let environmentText; let exampleText; let packageText;
 	try { [policyText, environmentText, exampleText, packageText] = await Promise.all([readText(path.join(root, 'config', 'git-safety-contract.json')), readText(path.join(root, 'config', 'environment-contract.json')), readText(path.join(root, 'config', 'environment.example.json')), readText(path.join(root, 'package.json'))]); } catch { return fail('POLICY_READ_FAILED'); }
 	let policy; let manifest;
@@ -224,7 +284,7 @@ export async function auditRepository({ root = repositoryRoot, readText = (file)
 	run ??= canonicalRun;
 	const output = (result) => typeof result === 'string' ? result : result.stdout ?? '';
 	const ciGitRun = environment.CI === 'true' ? async (command, args) => output(await (environmentRun ?? canonicalRun)(command, args)).trim() : undefined;
-	if (await validateEnvironment({ authorityText: environmentText, configText: exampleText, root, currentDirectory: root, environment, platform: environmentPlatform, readText, gitRun: ciGitRun })) return fail('ENVIRONMENT_CONTRACT_INVALID');
+	if (await validateEnvironment({ authorityText: environmentText, configText: exampleText, root, currentDirectory: root, environment, platform: environmentPlatform, readText, run: npmRun, gitRun: ciGitRun })) return fail('ENVIRONMENT_CONTRACT_INVALID');
 	if (await auditPrValidationWorkflow({ root, readText, readDirectory })) return fail('POLICY_INVALID');
 	const scripts = auditPackageScripts(manifest); if (scripts) return scripts;
 	const optionalGitConfig = async (args, failureCode) => {

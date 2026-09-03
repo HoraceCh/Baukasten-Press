@@ -24,11 +24,15 @@ The sole pull-request workflow is validated as an exact, pinned, least-privilege
 
 Destructive/history-rewriting and repository-topology commands are prohibited, including reset, clean, restore, checkout, stash, rebase, cherry-pick, force/history filters, rm/mv, ref/object mutation, reflog/gc/prune, init/clone, submodule, and worktree commands. A blocked or ambiguous command must not be substituted with a wrapper or script.
 
-## One-time stale-contract bootstrap
+## Target-object preparation before reconciliation
 
-A checkout whose committed Git-safety contract predates the reconciliation class may use a one-time bootstrap only to reach one exact approved canonical target. This is not a generic legacy bypass and does not authorize any other stale checkout or later reconciliation. Fresh external authority must name the exact local starting SHA and exact canonical target SHA. Before the bootstrap, the operator must prove a clean worktree and index, the canonical repository root and HTTPS origin, branch `main`, the exact local SHA, the live canonical `origin/main` target, ancestry from that local SHA to the target, and fast-forward-only semantics. The only permitted update form remains the exact externally transported `rtk git pull --ff-only origin main` command.
+A stale checkout can discover the live canonical target while lacking that commit object locally. It must not attempt ancestry until a separately authorized preparation has acquired the exact approved object. Preparation is neither read-only nor reconciliation nor delivery: `reconciliationPreparationMutation` is the sole command class for `rtk git fetch --no-tags --no-write-fetch-head origin <target-sha>`, where `<target-sha>` is a lowercase full 40-character SHA. It cannot fetch a ref, update a ref, fetch tags, prune, force, select another remote, or use a general fetch form.
 
-If any bootstrap fact is absent or changes, stop without mutation. After the fast-forward, validate the newly active Git-safety contract before requesting any later Git operation. The bootstrap grants no implementation, delivery, merge, rebase, history-rewrite, push, or reusable reconciliation authority.
+`authorizeReconciliationPreparationMutation` fails closed unless explicit preparation authority, canonical root, canonical HTTPS origin, branch `main`, a clean worktree and index, approved lowercase starting and target SHAs, `HEAD` equal to the starting SHA, and a freshly read live `origin/main` equal to the approved target are all proved with RTK/literal transport. Delivery and reconciliation authority cannot substitute for preparation authority, and preparation authority cannot authorize either final reconciliation or delivery.
+
+Immediately after the exact fetch, `authorizeReconciliationPreparationPostcondition` must prove that the target object exists; `HEAD`, branch, worktree, index, refs, and `FETCH_HEAD` are unchanged; a fresh live `origin/main` read still equals the approved target; and literal `merge-base --is-ancestor <starting-sha> <target-sha>` now passes. If the remote moved, possession of the older object is insufficient and the process stops without silently upgrading to the new target. Only this successful postcondition permits the separate BAP-77 `rtk git pull --ff-only origin main` authorization to be evaluated.
+
+The Git-safety test uses only disposable operating-system temporary repositories, local bare remotes, sanitized `execFile` argument arrays, and verified cleanup to reproduce this condition. It performs no project-repository fetch or mutation and is designed without POSIX shell syntax for later native-Windows acceptance.
 
 ## Indirect callers and validation
 
