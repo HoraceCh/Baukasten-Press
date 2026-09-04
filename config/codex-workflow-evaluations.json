@@ -1,0 +1,1254 @@
+{
+  "schemaVersion": "1.0",
+  "contractVersion": "1.0",
+  "evaluationVersion": "1.0",
+  "cases": [
+    {
+      "caseId": "worker-analysis",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": ["docs/AGENT_ROUTING.md"],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["automatic:gpt-5.6-sol/high", "class:analysis", "owner:press_system_architect", "resource:repository-contracts", "rule:matched", "status:ROUTED"],
+      "expectedRoute": {
+        "status": "ROUTED",
+        "primaryOwner": "press_system_architect",
+        "serialHandoffs": [],
+        "capabilityTier": "worker",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "matchedRuleIds": ["baukasten-press-governance"],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "OWNER_ARCHITECTURE",
+          "AUTOMATIC_TUPLE"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "architecture-contract",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "contract",
+        "surfaces": [
+          "workflow-topology"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["automatic:gpt-5.6-sol/high", "class:contract", "owner:press_system_architect", "resource:repository-contracts", "rule:absent", "status:ROUTED"],
+      "expectedRoute": {
+        "status": "ROUTED",
+        "primaryOwner": "press_system_architect",
+        "serialHandoffs": [],
+        "capabilityTier": "judge",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "OWNER_ARCHITECTURE",
+          "AUTOMATIC_TUPLE"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "publication-contract",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "contract",
+        "surfaces": [
+          "publication"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["automatic:gpt-5.6-sol/high", "class:contract", "owner:publication_contract_guardian", "resource:repository-contracts", "rule:absent", "status:ROUTED"],
+      "expectedRoute": {
+        "status": "ROUTED",
+        "primaryOwner": "publication_contract_guardian",
+        "serialHandoffs": [],
+        "capabilityTier": "judge",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "OWNER_PUBLICATION",
+          "AUTOMATIC_TUPLE"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "runtime-analysis",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "agent-runtime"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["automatic:gpt-5.6-sol/high", "class:analysis", "owner:agent_runtime_security_engineer", "resource:repository-contracts", "rule:absent", "status:ROUTED"],
+      "expectedRoute": {
+        "status": "ROUTED",
+        "primaryOwner": "agent_runtime_security_engineer",
+        "serialHandoffs": [],
+        "capabilityTier": "judge",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "OWNER_RUNTIME",
+          "AUTOMATIC_TUPLE"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "implementation-automatic",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "implementation",
+        "surfaces": [
+          "workspace",
+          "ui"
+        ],
+        "paths": [
+          "src/main.ts"
+        ],
+        "mutationIntent": "workspace-write",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-terra/medium",
+          "baukasten.press-ui"
+        ],
+        "availableTuples": [
+          "gpt-5.6-terra/medium"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["automatic:gpt-5.6-terra/medium", "class:implementation", "handoff:implementation-to-qa", "owner:press_app_implementer", "resource:repository-contracts", "rule:absent", "status:ROUTED"],
+      "expectedRoute": {
+        "status": "ROUTED",
+        "primaryOwner": "press_app_implementer",
+        "serialHandoffs": [
+          "qa_release_reviewer"
+        ],
+        "capabilityTier": "engineering-synthesizer",
+        "model": "gpt-5.6-terra",
+        "reasoningEffort": "medium",
+        "sandboxCeiling": "workspace-write",
+        "selectedResourceIds": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-terra/medium",
+          "baukasten.press-ui"
+        ],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing",
+          "independent-qa"
+        ],
+        "decisionReasons": [
+          "OWNER_IMPLEMENTATION",
+          "AUTOMATIC_TUPLE"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "mechanical-automatic",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "mechanical",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": [
+          "docs/usage.md"
+        ],
+        "mutationIntent": "workspace-write",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-terra/medium"
+        ],
+        "availableTuples": [
+          "gpt-5.6-terra/medium"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["automatic:gpt-5.6-terra/medium", "class:mechanical", "handoff:implementation-to-qa", "owner:press_app_implementer", "resource:repository-contracts", "rule:absent", "status:ROUTED"],
+      "expectedRoute": {
+        "status": "ROUTED",
+        "primaryOwner": "press_app_implementer",
+        "serialHandoffs": [
+          "qa_release_reviewer"
+        ],
+        "capabilityTier": "engineering-synthesizer",
+        "model": "gpt-5.6-terra",
+        "reasoningEffort": "medium",
+        "sandboxCeiling": "workspace-write",
+        "selectedResourceIds": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-terra/medium"
+        ],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing",
+          "independent-qa"
+        ],
+        "decisionReasons": [
+          "OWNER_IMPLEMENTATION",
+          "AUTOMATIC_TUPLE"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "final-review",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "final-review",
+        "surfaces": [
+          "tests"
+        ],
+        "paths": [
+          "src/main.ts"
+        ],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["automatic:gpt-5.6-sol/high", "class:final-review", "owner:qa_release_reviewer", "resource:repository-contracts", "rule:absent", "status:ROUTED"],
+      "expectedRoute": {
+        "status": "ROUTED",
+        "primaryOwner": "qa_release_reviewer",
+        "serialHandoffs": [],
+        "capabilityTier": "judge",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "OWNER_REVIEW",
+          "AUTOMATIC_TUPLE"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "invalid-signal",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "invalid",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["class:analysis", "rule:absent", "status:INVALID_SIGNAL"],
+      "expectedRoute": {
+        "status": "INVALID_SIGNAL",
+        "primaryOwner": null,
+        "serialHandoffs": [],
+        "capabilityTier": null,
+        "model": null,
+        "reasoningEffort": null,
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "INVALID_SIGNAL"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "context-unregistered",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "README.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["class:analysis", "rule:absent", "status:CONTEXT_ENTRY_UNREGISTERED"],
+      "expectedRoute": {
+        "status": "CONTEXT_ENTRY_UNREGISTERED",
+        "primaryOwner": null,
+        "serialHandoffs": [],
+        "capabilityTier": null,
+        "model": null,
+        "reasoningEffort": null,
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "CONTEXT_ENTRY_UNREGISTERED"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "prerequisite-missing",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [
+          "evidence:BAP-84:missing"
+        ],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["class:analysis", "rule:absent", "status:PREREQUISITE_DECISION_MISSING"],
+      "expectedRoute": {
+        "status": "PREREQUISITE_DECISION_MISSING",
+        "primaryOwner": null,
+        "serialHandoffs": [],
+        "capabilityTier": null,
+        "model": null,
+        "reasoningEffort": null,
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "PREREQUISITE_DECISION_MISSING"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "blocked-authority",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "mechanical",
+        "surfaces": [
+          "git-policy"
+        ],
+        "paths": [
+          "scripts/validate-codex-workflow.mjs"
+        ],
+        "mutationIntent": "git-mutation",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["class:mechanical", "owner:press_system_architect", "rule:absent", "status:BLOCKED_AUTHORITY"],
+      "expectedRoute": {
+        "status": "BLOCKED_AUTHORITY",
+        "primaryOwner": "press_system_architect",
+        "serialHandoffs": [],
+        "capabilityTier": null,
+        "model": null,
+        "reasoningEffort": null,
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "BLOCKED_AUTHORITY"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "evaluation-only",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": "gpt-5.6-sol/low",
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["class:analysis", "evaluation-only", "owner:press_system_architect", "rule:absent", "status:EVALUATION_REQUIRED"],
+      "expectedRoute": {
+        "status": "EVALUATION_REQUIRED",
+        "primaryOwner": "press_system_architect",
+        "serialHandoffs": [],
+        "capabilityTier": "worker",
+        "model": null,
+        "reasoningEffort": null,
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing",
+          "evaluation-promotion"
+        ],
+        "decisionReasons": [
+          "EVALUATION_ONLY_TUPLE"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "candidate-luna",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "implementation",
+        "surfaces": [
+          "workspace"
+        ],
+        "paths": [
+          "src/main.ts"
+        ],
+        "mutationIntent": "workspace-write",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-luna/low"
+        ],
+        "availableTuples": [
+          "gpt-5.6-luna/low"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": "gpt-5.6-luna/low",
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["candidate:gpt-5.6-luna/low", "class:implementation", "handoff:implementation-to-qa", "owner:press_app_implementer", "resource:repository-contracts", "rule:absent", "status:ROUTED"],
+      "expectedRoute": {
+        "status": "ROUTED",
+        "primaryOwner": "press_app_implementer",
+        "serialHandoffs": [
+          "qa_release_reviewer"
+        ],
+        "capabilityTier": "engineering-synthesizer",
+        "model": "gpt-5.6-luna",
+        "reasoningEffort": "low",
+        "sandboxCeiling": "workspace-write",
+        "selectedResourceIds": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-luna/low"
+        ],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing",
+          "independent-qa"
+        ],
+        "decisionReasons": [
+          "OWNER_IMPLEMENTATION",
+          "CANDIDATE_EVALUATED"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "candidate-sol",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/medium"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/medium"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": "gpt-5.6-sol/medium",
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["candidate:gpt-5.6-sol/medium", "class:analysis", "owner:press_system_architect", "resource:repository-contracts", "rule:absent", "status:ROUTED"],
+      "expectedRoute": {
+        "status": "ROUTED",
+        "primaryOwner": "press_system_architect",
+        "serialHandoffs": [],
+        "capabilityTier": "worker",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "medium",
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/medium"
+        ],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "OWNER_ARCHITECTURE",
+          "CANDIDATE_EVALUATED"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "codegraph",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "codegraph-index",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": true,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["automatic:gpt-5.6-sol/high", "class:analysis", "owner:press_system_architect", "resource:codegraph", "resource:repository-contracts", "rule:absent", "status:ROUTED"],
+      "expectedRoute": {
+        "status": "ROUTED",
+        "primaryOwner": "press_system_architect",
+        "serialHandoffs": [],
+        "capabilityTier": "worker",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [
+          "repository-contracts",
+          "codegraph-index",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "OWNER_ARCHITECTURE",
+          "AUTOMATIC_TUPLE"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "codegraph-fallback",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": true,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["automatic:gpt-5.6-sol/high", "class:analysis", "fallback:codegraph-to-rtk", "owner:press_system_architect", "resource:repository-contracts", "rule:absent", "status:ROUTED"],
+      "expectedRoute": {
+        "status": "ROUTED",
+        "primaryOwner": "press_system_architect",
+        "serialHandoffs": [],
+        "capabilityTier": "worker",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "OWNER_ARCHITECTURE",
+          "AUTOMATIC_TUPLE"
+        ],
+        "fallbackTrace": [
+          "FALLBACK_CODEGRAPH_TO_RTK"
+        ]
+      }
+    },
+    {
+      "caseId": "resource-unavailable",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["automatic:gpt-5.6-sol/high", "class:analysis", "owner:press_system_architect", "resource:unavailable", "rule:absent", "status:RESOURCE_UNAVAILABLE"],
+      "expectedRoute": {
+        "status": "RESOURCE_UNAVAILABLE",
+        "primaryOwner": "press_system_architect",
+        "serialHandoffs": [],
+        "capabilityTier": "worker",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "high",
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "REQUIRED_RESOURCE_UNAVAILABLE"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "capability-unavailable",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["capability:unavailable", "class:analysis", "owner:press_system_architect", "rule:absent", "status:CAPABILITY_UNAVAILABLE"],
+      "expectedRoute": {
+        "status": "CAPABILITY_UNAVAILABLE",
+        "primaryOwner": "press_system_architect",
+        "serialHandoffs": [],
+        "capabilityTier": "worker",
+        "model": null,
+        "reasoningEffort": null,
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "REQUESTED_TUPLE_UNAVAILABLE"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "runtime-unverified",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": ["docs/AGENT_ROUTING.md"],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified",
+        "ruleRuntime": "unavailable"
+      },
+      "coverageTags": ["class:analysis", "owner:press_system_architect", "rule:absent", "runtime:unverified", "status:RUNTIME_CAPABILITY_UNVERIFIED"],
+      "expectedRoute": {
+        "status": "RUNTIME_CAPABILITY_UNVERIFIED",
+        "primaryOwner": "press_system_architect",
+        "serialHandoffs": [],
+        "capabilityTier": null,
+        "model": null,
+        "reasoningEffort": null,
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "RUNTIME_CAPABILITY_UNVERIFIED"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "validation-failed",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "none",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "invalid"
+      },
+      "coverageTags": ["class:analysis", "rule:absent", "status:VALIDATION_FAILED"],
+      "expectedRoute": {
+        "status": "VALIDATION_FAILED",
+        "primaryOwner": null,
+        "serialHandoffs": [],
+        "capabilityTier": null,
+        "model": null,
+        "reasoningEffort": null,
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "VALIDATION_FAILED"
+        ],
+        "fallbackTrace": []
+      }
+    },
+    {
+      "caseId": "human-decision",
+      "signal": {
+        "schemaVersion": "1.0",
+        "taskId": "BAP-84",
+        "taskClass": "analysis",
+        "surfaces": [
+          "documentation"
+        ],
+        "paths": [],
+        "mutationIntent": "read-only",
+        "ambiguity": "declared",
+        "inputTrust": "governed-repository",
+        "evidenceRefs": [],
+        "prerequisiteDecisionRefs": []
+      },
+      "trustedContext": [
+        "AGENTS.md"
+      ],
+      "scenario": {
+        "availableResources": [
+          "repository-contracts",
+          "rtk-readonly",
+          "node-governance-validator",
+          "tuple:gpt-5.6-sol/high"
+        ],
+        "availableTuples": [
+          "gpt-5.6-sol/high"
+        ],
+        "attested": true,
+        "preferCodegraph": false,
+        "requestedTuple": null,
+        "eligibleCandidateTuples": [],
+        "runtimeCapability": "verified"
+      },
+      "coverageTags": ["class:analysis", "rule:absent", "status:HUMAN_DECISION_REQUIRED"],
+      "expectedRoute": {
+        "status": "HUMAN_DECISION_REQUIRED",
+        "primaryOwner": null,
+        "serialHandoffs": [],
+        "capabilityTier": null,
+        "model": null,
+        "reasoningEffort": null,
+        "sandboxCeiling": "read-only",
+        "selectedResourceIds": [],
+        "matchedRuleIds": [],
+        "requiredGates": [
+          "owner-routing"
+        ],
+        "decisionReasons": [
+          "HUMAN_DECISION_REQUIRED"
+        ],
+        "fallbackTrace": []
+      }
+    }
+  ] ,
+  "promotionRecords": []
+}

@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
@@ -11,7 +11,7 @@ const scriptPath = fileURLToPath(import.meta.url);
 export const repositoryRoot = path.resolve(path.dirname(scriptPath), '..');
 const CONTRACT_PATH = path.join(repositoryRoot, 'config', 'environment-contract.json');
 const EXAMPLE_PATH = path.join(repositoryRoot, 'config', 'environment.example.json');
-const SAFE_CODES = new Set(['CONFIG_READ_FAILED', 'CONFIG_INVALID', 'CONFIG_SCHEMA_INVALID', 'ENVIRONMENT_VARIABLE_FORBIDDEN', 'CI_METADATA_INVALID', 'REPOSITORY_ROOT_INVALID', 'REPOSITORY_CWD_INVALID', 'REPOSITORY_TOPLEVEL_INVALID', 'REPOSITORY_ORIGIN_INVALID', 'CI_WORKSPACE_INVALID', 'CI_WORKTREE_INVALID', 'NODE_VERSION_INVALID', 'NPM_VERSION_INVALID', 'TOOLCHAIN_MANIFEST_INVALID', 'PACKAGE_METADATA_INVALID', 'LOCKFILE_INVALID', 'PACKAGE_LOCK_MISMATCH', 'LOCKED_TOOL_INVALID', 'IGNORE_POLICY_INVALID', 'PATH_POLICY_INVALID', 'OPENCODE_GOVERNANCE_INVALID', 'COMMAND_FAILED']);
+const SAFE_CODES = new Set(['CONFIG_READ_FAILED', 'CONFIG_INVALID', 'CONFIG_SCHEMA_INVALID', 'ENVIRONMENT_VARIABLE_FORBIDDEN', 'CI_METADATA_INVALID', 'REPOSITORY_ROOT_INVALID', 'REPOSITORY_CWD_INVALID', 'REPOSITORY_TOPLEVEL_INVALID', 'REPOSITORY_ORIGIN_INVALID', 'CI_WORKSPACE_INVALID', 'CI_WORKTREE_INVALID', 'NODE_VERSION_INVALID', 'NPM_VERSION_INVALID', 'TOOLCHAIN_MANIFEST_INVALID', 'PACKAGE_METADATA_INVALID', 'LOCKFILE_INVALID', 'PACKAGE_LOCK_MISMATCH', 'LOCKED_TOOL_INVALID', 'IGNORE_POLICY_INVALID', 'PATH_POLICY_INVALID', 'RULE_ADMISSION_INVALID', 'OPENCODE_GOVERNANCE_INVALID', 'COMMAND_FAILED']);
 
 const exactKeys = (value, expected) => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === expected.length && expected.every((key) => Object.hasOwn(value, key));
 const emptyObject = (value) => exactKeys(value, []);
@@ -71,7 +71,7 @@ export function validateAuthority(authority) {
 	if (!exactKeys(ciRootPolicy, ['metadata', 'trackedAllowlist']) || !exactEntries(ciRootPolicy.metadata, { CI: 'true', GITHUB_ACTIONS: 'true', GITHUB_REPOSITORY: environment.repository.slug, GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main', RUNNER_ENVIRONMENT: 'github-hosted', RUNNER_OS: 'Linux' }) || !sameStrings(ciRootPolicy.trackedAllowlist, ['.github/workflows/pr-validation.yml'])) return fail('CONFIG_SCHEMA_INVALID');
 	const toolchain = environment.toolchain;
 	if (!exactKeys(toolchain, required.toolchain) || typeof toolchain.node !== 'string' || typeof toolchain.npm !== 'string' || toolchain.packageManager !== 'npm' || toolchain.resolver !== 'mise' || toolchain.resolverManifest !== 'mise.toml' || typeof toolchain.lockfile !== 'string' || !Number.isInteger(toolchain.lockfileVersion) || !isStringList(toolchain.requiredLockedPackages)) return fail('CONFIG_SCHEMA_INVALID');
-	if (!exactKeys(environment.paths, required.paths) || !isStringList(environment.paths.tracked) || !isStringList(environment.paths.ignoredRuntime)) return fail('CONFIG_SCHEMA_INVALID');
+	if (!exactKeys(environment.paths, required.paths) || !isStringList(environment.paths.tracked) || !isStringList(environment.paths.ignoredRuntime) || !exactKeys(environment.ruleAdmission, ['trackedRule']) || environment.ruleAdmission.trackedRule !== '.omo/rules/agent-governance.md' || !environment.paths.tracked.includes(environment.ruleAdmission.trackedRule) || environment.paths.tracked.some((entry) => entry.startsWith('.omo/') && entry !== environment.ruleAdmission.trackedRule)) return fail('CONFIG_SCHEMA_INVALID');
 	const profiles = environment.profiles;
 	if (!isStringList(environment.profileNames) || !profiles || typeof profiles !== 'object' || Array.isArray(profiles) || !sameStrings(Object.keys(profiles).sort(), [...environment.profileNames].sort())) return fail('CONFIG_SCHEMA_INVALID');
 	for (const profile of Object.values(profiles)) {
@@ -119,7 +119,7 @@ function sameDependencySection(left, right, name) {
 	return exactKeys(a, Object.keys(b)) && Object.keys(a).every((key) => a[key] === b[key]);
 }
 
-export async function validateEnvironment({ authorityText, configText, root = repositoryRoot, currentDirectory = process.cwd(), environment = process.env, nodeVersion = process.versions.node, platform = process.platform, readText = (file) => readFile(file, 'utf8'), validateOpenCode = validateOpenCodeGovernance, run = (command, argumentsList) => runExactNpm(command, argumentsList, root), gitRun = (command, argumentsList) => runExactGit(command, argumentsList, root) } = {}) {
+export async function validateEnvironment({ authorityText, configText, root = repositoryRoot, currentDirectory = process.cwd(), environment = process.env, nodeVersion = process.versions.node, platform = process.platform, readText = (file) => readFile(file, 'utf8'), readDirectory = (directory) => readdir(directory, { withFileTypes: true }), validateOpenCode = validateOpenCodeGovernance, run = (command, argumentsList) => runExactNpm(command, argumentsList, root), gitRun = (command, argumentsList) => runExactGit(command, argumentsList, root) } = {}) {
 	if (Object.keys(environment).some((name) => /^baukasten_press_/i.test(name))) return fail('ENVIRONMENT_VARIABLE_FORBIDDEN');
 	let authority; let example;
 	try { authority = parseStrictJson(authorityText); example = parseStrictJson(configText); } catch { return fail('CONFIG_INVALID'); }
@@ -165,6 +165,13 @@ export async function validateEnvironment({ authorityText, configText, root = re
 	if (tracked.split(/\r?\n/).filter((entry) => entry.startsWith('.github/')).some((entry) => !repository.ciRootPolicy.trackedAllowlist.includes(entry))) return fail('PATH_POLICY_INVALID');
 	const approved = paths.tracked;
 	if (tracked.split(/\r?\n/).filter(Boolean).some((entry) => !approved.some((allowed) => allowed.endsWith('/') ? entry.startsWith(allowed) : entry === allowed))) return fail('PATH_POLICY_INVALID');
+	const admittedRule = authority.environment.ruleAdmission.trackedRule;
+	const trackedRules = tracked.split(/\r?\n/).filter((entry) => entry.startsWith('.omo/'));
+	if (trackedRules.length > 0 && !sameStrings(trackedRules, [admittedRule])) return fail('RULE_ADMISSION_INVALID');
+	let ruleEntries;
+	try { ruleEntries = await readDirectory(path.join(root, '.omo', 'rules')); } catch { return fail('RULE_ADMISSION_INVALID'); }
+	const ruleNames = ruleEntries.map((entry) => typeof entry === 'string' ? entry : entry.name).sort();
+	if (!sameStrings(ruleNames, ['agent-governance.md'])) return fail('RULE_ADMISSION_INVALID');
 	return null;
 }
 

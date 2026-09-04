@@ -53,4 +53,8 @@ Future application work must add deterministic fixtures and an explicit allow/de
 
 Future PR validation consumes this command without broadening its permissions. Release review consumes the resulting command exit status, committed diff, and the known contract-suite mapping; it must remain read-only. No Phase 0 test result is evidence that a vault, Website, Admin, provider, credential store, queue, or publication destination was contacted.
 
+## Codex workflow governance
+
+`tests/codex-workflow.test.mjs` protects the BAP-84 routing boundary. It verifies strict JSON parsing, closed signal and context handling, disabled-Rule Phase 1 behavior, model/resource safe states, and deterministic evaluation coverage. `scripts/validate-agent-infrastructure.mjs` runs the same workflow validation as part of agent-governance validation, preventing documentation, contract, evaluation, or host-matrix drift from silently changing routing.
+
 `.npm-cache/contract-tests/` is generated, ignored evidence only. It is neither a fixture source nor a committed artifact. The canonical tests and this document are the reviewable source of truth.

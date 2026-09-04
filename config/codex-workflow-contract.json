@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "contractVersion": "1.0",
+  "enabled": true,
+  "owners": ["press_system_architect", "publication_contract_guardian", "agent_runtime_security_engineer", "press_app_implementer", "qa_release_reviewer"],
+  "taskSignal": {
+    "keys": ["schemaVersion", "taskId", "taskClass", "surfaces", "paths", "mutationIntent", "ambiguity", "inputTrust", "evidenceRefs", "prerequisiteDecisionRefs"],
+    "taskClasses": ["analysis", "contract", "implementation", "mechanical", "final-review"],
+    "surfaces": ["workflow-topology", "git-policy", "publication", "agent-runtime", "workspace", "ui", "tests", "documentation"],
+    "mutationIntents": ["read-only", "workspace-write", "git-mutation", "external-write", "vault-write", "publication", "provider-call", "credential-access"],
+    "ambiguity": ["none", "declared"],
+    "inputTrust": ["governed-repository", "operator-supplied", "repository-untrusted", "external-untrusted", "mixed-untrusted"]
+  },
+  "routeOutput": ["status", "primaryOwner", "serialHandoffs", "capabilityTier", "model", "reasoningEffort", "sandboxCeiling", "selectedResourceIds", "matchedRuleIds", "requiredGates", "decisionReasons", "fallbackTrace"],
+  "tiers": {"worker": "read-only", "engineering-synthesizer": "workspace-write", "judge": "read-only"},
+  "hostTuples": {"automatic": ["gpt-5.6-terra/medium", "gpt-5.6-sol/high"], "candidates": ["gpt-5.6-luna/low", "gpt-5.6-sol/medium"], "evaluationOnly": ["gpt-5.6-sol/low", "gpt-5.6-sol/xhigh", "gpt-5.6-sol/max", "gpt-5.6-sol/ultra", "gpt-5.6-terra/low", "gpt-5.6-terra/high", "gpt-5.6-terra/xhigh", "gpt-5.6-terra/max", "gpt-5.6-terra/ultra", "gpt-5.6-luna/medium", "gpt-5.6-luna/high", "gpt-5.6-luna/xhigh", "gpt-5.6-luna/max", "gpt-5.5/low", "gpt-5.5/medium", "gpt-5.5/high", "gpt-5.5/xhigh", "gpt-5.4/low", "gpt-5.4/medium", "gpt-5.4/high", "gpt-5.4/xhigh", "gpt-5.4-mini/low", "gpt-5.4-mini/medium", "gpt-5.4-mini/high", "gpt-5.4-mini/xhigh"]},
+  "resources": ["repository-contracts", "codegraph-index", "rtk-readonly", "node-governance-validator", "baukasten.press-ui", "baukasten.complexity-review", "baukasten.complexity-audit", "tuple:gpt-5.6-terra/medium", "tuple:gpt-5.6-sol/high", "tuple:gpt-5.6-luna/low", "tuple:gpt-5.6-sol/medium"],
+  "registeredEvidenceRefs": ["evidence:BAP-84:phase-1"],
+  "settledDecisions": ["decision:BAP-84:evaluated-model-routing"],
+  "trustedContext": ["AGENTS.md", "docs/AGENT_ROUTING.md", "docs/CODEX_MODEL_USAGE.md", "docs/TEST_STRATEGY.md", "docs/SKILL_ADMISSION_ROUTING.md", "docs/SKILL_REGISTRY.md", "config/codex-workflow-contract.json", "config/codex-workflow-evaluations.json", ".codex/config.toml", ".codex/agents/press_system_architect.toml", ".codex/agents/publication_contract_guardian.toml", ".codex/agents/agent_runtime_security_engineer.toml", ".codex/agents/press_app_implementer.toml", ".codex/agents/qa_release_reviewer.toml"],
+  "requiredGates": ["owner-routing", "independent-qa", "evaluation-promotion"],
+  "decisionCodes": ["INVALID_SIGNAL", "CONTEXT_ENTRY_UNREGISTERED", "PREREQUISITE_DECISION_MISSING", "HUMAN_DECISION_REQUIRED", "BLOCKED_AUTHORITY", "EVALUATION_REQUIRED", "RESOURCE_UNAVAILABLE", "CAPABILITY_UNAVAILABLE", "RUNTIME_CAPABILITY_UNVERIFIED", "VALIDATION_FAILED", "OWNER_ARCHITECTURE", "OWNER_PUBLICATION", "OWNER_RUNTIME", "OWNER_IMPLEMENTATION", "OWNER_REVIEW", "AUTOMATIC_TUPLE", "CANDIDATE_EVALUATED", "EVALUATION_ONLY_TUPLE", "CANDIDATE_NOT_ELIGIBLE", "REQUESTED_TUPLE_UNKNOWN", "REQUESTED_TUPLE_UNAVAILABLE", "RUNTIME_UNATTESTED", "REQUIRED_RESOURCE_UNAVAILABLE", "RTK_RESOURCE_UNAVAILABLE", "TUPLE_RESOURCE_UNAVAILABLE", "UI_RESOURCE_UNAVAILABLE"],
+  "fallbackCodes": ["FALLBACK_CODEGRAPH_TO_RTK"],
+  "handoff": {"maximumBytes": 16384, "allowed": ["identifiers", "paths", "refs"]},
+  "rule": {"enabled": true, "path": ".omo/rules/agent-governance.md"},
+  "evaluationCoverage": ["class:analysis", "class:contract", "class:implementation", "class:mechanical", "class:final-review", "owner:press_system_architect", "owner:publication_contract_guardian", "owner:agent_runtime_security_engineer", "owner:press_app_implementer", "owner:qa_release_reviewer", "status:INVALID_SIGNAL", "status:CONTEXT_ENTRY_UNREGISTERED", "status:BLOCKED_AUTHORITY", "status:PREREQUISITE_DECISION_MISSING", "status:EVALUATION_REQUIRED", "status:RESOURCE_UNAVAILABLE", "status:CAPABILITY_UNAVAILABLE", "status:RUNTIME_CAPABILITY_UNVERIFIED", "status:VALIDATION_FAILED", "status:HUMAN_DECISION_REQUIRED", "automatic:gpt-5.6-terra/medium", "automatic:gpt-5.6-sol/high", "candidate:gpt-5.6-luna/low", "candidate:gpt-5.6-sol/medium", "evaluation-only", "resource:repository-contracts", "resource:codegraph", "fallback:codegraph-to-rtk", "resource:unavailable", "capability:unavailable", "runtime:unverified", "handoff:implementation-to-qa", "rule:absent", "rule:matched"],
+  "candidatePromotions": [{"tuple":"gpt-5.6-luna/low","caseId":"candidate-luna","evidenceRef":"evidence:BAP-84:phase-1","decisionRef":"decision:BAP-84:evaluated-model-routing","qualification":"governed-promotion-v1"},{"tuple":"gpt-5.6-sol/medium","caseId":"candidate-sol","evidenceRef":"evidence:BAP-84:phase-1","decisionRef":"decision:BAP-84:evaluated-model-routing","qualification":"governed-promotion-v1"}]
+}

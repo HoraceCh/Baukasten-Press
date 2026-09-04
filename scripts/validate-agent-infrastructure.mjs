@@ -1,8 +1,9 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateSkillRegistry } from './validate-skill-registry.mjs';
 import { validateOpenCodeGovernance } from './validate-opencode-governance.mjs';
+import { parseStrictJson, validateRuleText, validateWorkflow } from './validate-codex-workflow.mjs';
 
 const EXPECTED_AGENTS = new Map([
 	['press_system_architect', { model: 'gpt-5.6-sol', reasoning: 'high', sandbox: 'read-only' }],
@@ -56,14 +57,18 @@ let routing;
 let agentsInstructions;
 let modelUsage;
 let adoption;
+let workflowContract;
+let workflowEvaluations;
 
 try {
-	[config, routing, agentsInstructions, modelUsage, adoption] = await Promise.all([
+	[config, routing, agentsInstructions, modelUsage, adoption, workflowContract, workflowEvaluations] = await Promise.all([
 		readRepositoryText('.codex', 'config.toml'),
 		readRepositoryText('docs', 'AGENT_ROUTING.md'),
 		readRepositoryText('AGENTS.md'),
 		readRepositoryText('docs', 'CODEX_MODEL_USAGE.md'),
 		readRepositoryText('docs', 'AGENCY_AGENTS_ADOPTION.md'),
+		readRepositoryText('config', 'codex-workflow-contract.json'),
+		readRepositoryText('config', 'codex-workflow-evaluations.json'),
 	]);
 } catch (error) {
 	console.error(`Agent infrastructure validation could not read required files: ${error.message}`);
@@ -205,6 +210,17 @@ for (const pattern of ['~/.codex/agents', '~\\.codex\\agents', '$HOME/.codex/age
 
 const registryResult = await validateSkillRegistry(repositoryRoot);
 errors.push(...registryResult.errors);
+
+try {
+	const parsedWorkflowContract = parseStrictJson(workflowContract);
+	const ruleText = await readRepositoryText(parsedWorkflowContract.rule.path).catch(() => null);
+	const rulePresent = ruleText !== null;
+	const workflowResult = validateWorkflow(parsedWorkflowContract, parseStrictJson(workflowEvaluations), rulePresent);
+	errors.push(...workflowResult.errors.map((error) => `Codex workflow ${error}.`));
+	if (parsedWorkflowContract.enabled && validateRuleText(ruleText)) errors.push('Codex workflow Rule invalid.');
+} catch {
+	errors.push('Codex workflow validation failed.');
+}
 
 const opencodeResult = await validateOpenCodeGovernance({ root: repositoryRoot, requiredAbsentOpenCodePaths: ['.opencode/oh-my-openagent.jsonc'] });
 if (opencodeResult) errors.push(`OpenCode governance validation failed: ${opencodeResult}.`);

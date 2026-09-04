@@ -22,7 +22,8 @@ export default defineConfig(
 			},
 			parserOptions: {
 				projectService: {
-				allowDefaultProject: ['eslint.config.mts', 'manifest.json', 'scripts/validate-agent-infrastructure.mjs', 'scripts/validate-environment.mjs', 'scripts/validate-skill-registry.mjs', 'scripts/run-contract-tests.mjs', 'tests/environment-contract.test.mjs', 'tests/run-contract-tests.test.mjs'],
+				allowDefaultProject: ['eslint.config.mts', 'manifest.json', 'scripts/validate-agent-infrastructure.mjs', 'scripts/validate-codex-workflow.mjs', 'scripts/validate-environment.mjs', 'scripts/validate-skill-registry.mjs', 'scripts/run-contract-tests.mjs', 'tests/codex-workflow.test.mjs', 'tests/environment-contract.test.mjs', 'tests/run-contract-tests.test.mjs'],
+				maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 10,
 				},
 				tsconfigRootDir: import.meta.dirname,
 				extraFileExtensions: ['.json'],
@@ -31,7 +32,7 @@ export default defineConfig(
 	},
 	...obsidianmd.configs.recommended,
 	{
-		files: ['scripts/validate-agent-infrastructure.mjs', 'scripts/validate-environment.mjs', 'scripts/validate-opencode-governance.mjs', 'scripts/validate-skill-registry.mjs', 'scripts/validate-git-safety.mjs', 'scripts/run-contract-tests.mjs', 'tests/environment-contract.test.mjs', 'tests/opencode-governance.test.mjs', 'tests/git-safety-contract.test.mjs', 'tests/run-contract-tests.test.mjs'],
+		files: ['scripts/validate-agent-infrastructure.mjs', 'scripts/validate-codex-workflow.mjs', 'scripts/validate-environment.mjs', 'scripts/validate-opencode-governance.mjs', 'scripts/validate-skill-registry.mjs', 'scripts/validate-git-safety.mjs', 'scripts/run-contract-tests.mjs', 'tests/codex-workflow.test.mjs', 'tests/environment-contract.test.mjs', 'tests/opencode-governance.test.mjs', 'tests/git-safety-contract.test.mjs', 'tests/run-contract-tests.test.mjs'],
 		languageOptions: {
 			globals: globals.node,
 		},
