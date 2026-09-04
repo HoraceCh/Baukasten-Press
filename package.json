@@ -4,6 +4,19 @@
 	"description": "Controlled public-copy publishing for a Baukasten_Nexus Obsidian vault.",
 	"main": "main.js",
 	"type": "module",
+	"packageManager": "npm@11.19.1",
+	"devEngines": {
+		"runtime": {
+			"name": "node",
+			"version": "24.14.1",
+			"onFail": "error"
+		},
+		"packageManager": {
+			"name": "npm",
+			"version": "11.19.1",
+			"onFail": "error"
+		}
+	},
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"validate:agents": "node scripts/validate-agent-infrastructure.mjs && node --test tests/opencode-governance.test.mjs",

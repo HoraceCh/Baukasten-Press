@@ -26,7 +26,7 @@ jobs:
           node-version: 24.14.1
           check-latest: false
           package-manager-cache: false
-      - run: npm install --global npm@11.14.1 --ignore-scripts --no-audit --no-fund
+      - run: npm install --global npm@11.19.1 --ignore-scripts --no-audit --no-fund
       - run: npm --version
       - run: npm ci --no-audit --no-fund
       - run: npm run validate
