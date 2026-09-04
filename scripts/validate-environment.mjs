@@ -144,7 +144,7 @@ export async function validateEnvironment({ authorityText, configText, root = re
 	if (npmVersion !== toolchain.npm) return fail('NPM_VERSION_INVALID');
 	let toolchainText;
 	try { toolchainText = await readText(path.join(root, toolchain.resolverManifest)); } catch { return fail('TOOLCHAIN_MANIFEST_INVALID'); }
-	try { if (parseToolchainManifest(toolchainText).node !== toolchain.node || parseToolchainManifest(toolchainText).npm !== toolchain.npm) return fail('TOOLCHAIN_MANIFEST_INVALID'); } catch { return fail('TOOLCHAIN_MANIFEST_INVALID'); }
+	try { const toolchainManifest = parseToolchainManifest(toolchainText); if (toolchainManifest.node !== toolchain.node || toolchainManifest.npm !== toolchain.npm) return fail('TOOLCHAIN_MANIFEST_INVALID'); } catch { return fail('TOOLCHAIN_MANIFEST_INVALID'); }
 	let packageText;
 	try { packageText = await readText(path.join(root, 'package.json')); } catch { return fail('PACKAGE_METADATA_INVALID'); }
 	let manifest;

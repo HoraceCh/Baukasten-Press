@@ -79,7 +79,7 @@ Colors, typography, focus, and theme contrast come from Obsidian semantic variab
 Prerequisites:
 
 - [mise](https://mise.jdx.dev/) is the project-local toolchain resolver. On Windows, install it with Scoop or WinGet; on Linux or WSL, use `mise.run`; on macOS, use `mise.run` or Homebrew. From this repository root, run `mise --version`, `mise install`, and `mise config` to record the available resolver and effective configuration. Shell activation is optional.
-- npm is the package manager used by this project. `packageManager` and `devEngines` enforce the same exact Node.js and npm versions before development commands run.
+- npm is the package manager used by this project. `packageManager` and `devEngines` are declarative npm-native metadata and guards; repository acceptance is enforced by `mise exec -- npm run validate`, not independently by `npm run dev` or `npm run build`.
 
 On Windows, use PowerShell or Windows Terminal at the repository root after installing mise. On WSL, Linux, and macOS, open a shell at the repository root after installing mise. In every environment, run `mise install` first, then use `mise exec -- npm ci` and `mise exec -- npm run validate`. A `mise.local.toml` or `mise.local.lock` may contain only local resolver state and is intentionally ignored.
 
