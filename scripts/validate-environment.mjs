@@ -11,7 +11,7 @@ const scriptPath = fileURLToPath(import.meta.url);
 export const repositoryRoot = path.resolve(path.dirname(scriptPath), '..');
 const CONTRACT_PATH = path.join(repositoryRoot, 'config', 'environment-contract.json');
 const EXAMPLE_PATH = path.join(repositoryRoot, 'config', 'environment.example.json');
-const SAFE_CODES = new Set(['CONFIG_READ_FAILED', 'CONFIG_INVALID', 'CONFIG_SCHEMA_INVALID', 'ENVIRONMENT_VARIABLE_FORBIDDEN', 'CI_METADATA_INVALID', 'REPOSITORY_ROOT_INVALID', 'REPOSITORY_CWD_INVALID', 'REPOSITORY_TOPLEVEL_INVALID', 'REPOSITORY_ORIGIN_INVALID', 'CI_WORKSPACE_INVALID', 'CI_WORKTREE_INVALID', 'NODE_VERSION_INVALID', 'NPM_VERSION_INVALID', 'LOCKFILE_INVALID', 'PACKAGE_LOCK_MISMATCH', 'LOCKED_TOOL_INVALID', 'IGNORE_POLICY_INVALID', 'PATH_POLICY_INVALID', 'OPENCODE_GOVERNANCE_INVALID', 'COMMAND_FAILED']);
+const SAFE_CODES = new Set(['CONFIG_READ_FAILED', 'CONFIG_INVALID', 'CONFIG_SCHEMA_INVALID', 'ENVIRONMENT_VARIABLE_FORBIDDEN', 'CI_METADATA_INVALID', 'REPOSITORY_ROOT_INVALID', 'REPOSITORY_CWD_INVALID', 'REPOSITORY_TOPLEVEL_INVALID', 'REPOSITORY_ORIGIN_INVALID', 'CI_WORKSPACE_INVALID', 'CI_WORKTREE_INVALID', 'NODE_VERSION_INVALID', 'NPM_VERSION_INVALID', 'TOOLCHAIN_MANIFEST_INVALID', 'PACKAGE_METADATA_INVALID', 'LOCKFILE_INVALID', 'PACKAGE_LOCK_MISMATCH', 'LOCKED_TOOL_INVALID', 'IGNORE_POLICY_INVALID', 'PATH_POLICY_INVALID', 'OPENCODE_GOVERNANCE_INVALID', 'COMMAND_FAILED']);
 
 const exactKeys = (value, expected) => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === expected.length && expected.every((key) => Object.hasOwn(value, key));
 const emptyObject = (value) => exactKeys(value, []);
@@ -44,18 +44,33 @@ export function parseStrictJson(text) {
 	const result = value(); skip(); if (cursor !== text.length) invalid(); return result;
 }
 
+export function parseToolchainManifest(text) {
+	const match = typeof text === 'string' && text.match(/^\[tools\]\r?\nnode = "([^"\r\n]+)"\r?\nnpm = "([^"\r\n]+)"(?:\r?\n)?$/);
+	if (!match) throw new Error('TOOLCHAIN_MANIFEST_INVALID');
+	return { node: match[1], npm: match[2] };
+}
+
+export function validatePackageMetadata(manifest, toolchain) {
+	const expectedEngine = (name, version) => ({ name, version, onFail: 'error' });
+	return manifest !== null && typeof manifest === 'object' && !Array.isArray(manifest)
+		&& manifest.packageManager === `${toolchain.packageManager}@${toolchain.npm}`
+		&& exactKeys(manifest.devEngines, ['runtime', 'packageManager'])
+		&& exactEntries(manifest.devEngines.runtime, expectedEngine('node', toolchain.node))
+		&& exactEntries(manifest.devEngines.packageManager, expectedEngine(toolchain.packageManager, toolchain.npm)) ? null : fail('PACKAGE_METADATA_INVALID');
+}
+
 export function validateAuthority(authority) {
 	if (!exactKeys(authority, ['contractVersion', 'configSchema', 'requiredConfigKeys', 'environment']) || typeof authority.contractVersion !== 'string') return fail('CONFIG_SCHEMA_INVALID');
 	if (!exactKeys(authority.configSchema, ['required', 'optional', 'defaults', 'environmentVariables', 'secrets']) || !sameStrings(authority.configSchema.required, ['contractVersion', 'environment']) || !sameStrings(authority.configSchema.optional, []) || !emptyObject(authority.configSchema.defaults) || !sameStrings(authority.configSchema.environmentVariables, []) || !sameStrings(authority.configSchema.secrets, [])) return fail('CONFIG_SCHEMA_INVALID');
 	const required = authority.requiredConfigKeys;
-	if (!exactKeys(required, ['environment', 'repository', 'toolchain', 'paths', 'profile', 'capabilities']) || Object.values(required).some((keys) => !isStringList(keys))) return fail('CONFIG_SCHEMA_INVALID');
+	if (!exactKeys(required, ['environment', 'repository', 'toolchain', 'paths', 'profile', 'capabilities']) || !sameStrings(required.toolchain, ['node', 'npm', 'packageManager', 'resolver', 'resolverManifest', 'lockfile', 'lockfileVersion', 'requiredLockedPackages']) || Object.values(required).some((keys) => !isStringList(keys))) return fail('CONFIG_SCHEMA_INVALID');
 	const environment = authority.environment;
 	if (!exactKeys(environment, required.environment) || !emptyObject(environment.optional) || !emptyObject(environment.default) || !emptyObject(environment.envVariables) || !emptyObject(environment.secrets)) return fail('CONFIG_SCHEMA_INVALID');
 	if (!exactKeys(environment.repository, required.repository) || !exactKeys(environment.repository.root, ['windows', 'linux']) || Object.values(environment.repository.root).some((root) => typeof root !== 'string' || root.length === 0) || typeof environment.repository.slug !== 'string' || environment.repository.slug.length === 0) return fail('CONFIG_SCHEMA_INVALID');
 	const ciRootPolicy = environment.repository.ciRootPolicy;
 	if (!exactKeys(ciRootPolicy, ['metadata', 'trackedAllowlist']) || !exactEntries(ciRootPolicy.metadata, { CI: 'true', GITHUB_ACTIONS: 'true', GITHUB_REPOSITORY: environment.repository.slug, GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main', RUNNER_ENVIRONMENT: 'github-hosted', RUNNER_OS: 'Linux' }) || !sameStrings(ciRootPolicy.trackedAllowlist, ['.github/workflows/pr-validation.yml'])) return fail('CONFIG_SCHEMA_INVALID');
 	const toolchain = environment.toolchain;
-	if (!exactKeys(toolchain, required.toolchain) || typeof toolchain.node !== 'string' || typeof toolchain.npm !== 'string' || typeof toolchain.packageManager !== 'string' || typeof toolchain.lockfile !== 'string' || !Number.isInteger(toolchain.lockfileVersion) || !isStringList(toolchain.requiredLockedPackages)) return fail('CONFIG_SCHEMA_INVALID');
+	if (!exactKeys(toolchain, required.toolchain) || typeof toolchain.node !== 'string' || typeof toolchain.npm !== 'string' || toolchain.packageManager !== 'npm' || toolchain.resolver !== 'mise' || toolchain.resolverManifest !== 'mise.toml' || typeof toolchain.lockfile !== 'string' || !Number.isInteger(toolchain.lockfileVersion) || !isStringList(toolchain.requiredLockedPackages)) return fail('CONFIG_SCHEMA_INVALID');
 	if (!exactKeys(environment.paths, required.paths) || !isStringList(environment.paths.tracked) || !isStringList(environment.paths.ignoredRuntime)) return fail('CONFIG_SCHEMA_INVALID');
 	const profiles = environment.profiles;
 	if (!isStringList(environment.profileNames) || !profiles || typeof profiles !== 'object' || Array.isArray(profiles) || !sameStrings(Object.keys(profiles).sort(), [...environment.profileNames].sort())) return fail('CONFIG_SCHEMA_INVALID');
@@ -127,10 +142,18 @@ export async function validateEnvironment({ authorityText, configText, root = re
 	if (ci && status.trim() !== '') return fail('CI_WORKTREE_INVALID');
 	if (!validOrigin(origin, repository.slug)) return fail('REPOSITORY_ORIGIN_INVALID');
 	if (npmVersion !== toolchain.npm) return fail('NPM_VERSION_INVALID');
-	let packageText; let lockText; let ignoreText;
-	try { [packageText, lockText, ignoreText] = await Promise.all([readText(path.join(root, 'package.json')), readText(path.join(root, toolchain.lockfile)), readText(path.join(root, '.gitignore'))]); } catch { return fail('LOCKFILE_INVALID'); }
-	let manifest; let lock;
-	try { manifest = parseStrictJson(packageText); lock = parseStrictJson(lockText); } catch { return fail('LOCKFILE_INVALID'); }
+	let toolchainText;
+	try { toolchainText = await readText(path.join(root, toolchain.resolverManifest)); } catch { return fail('TOOLCHAIN_MANIFEST_INVALID'); }
+	try { if (parseToolchainManifest(toolchainText).node !== toolchain.node || parseToolchainManifest(toolchainText).npm !== toolchain.npm) return fail('TOOLCHAIN_MANIFEST_INVALID'); } catch { return fail('TOOLCHAIN_MANIFEST_INVALID'); }
+	let packageText;
+	try { packageText = await readText(path.join(root, 'package.json')); } catch { return fail('PACKAGE_METADATA_INVALID'); }
+	let manifest;
+	try { manifest = parseStrictJson(packageText); } catch { return fail('PACKAGE_METADATA_INVALID'); }
+	if (validatePackageMetadata(manifest, toolchain)) return fail('PACKAGE_METADATA_INVALID');
+	let lockText; let ignoreText;
+	try { [lockText, ignoreText] = await Promise.all([readText(path.join(root, toolchain.lockfile)), readText(path.join(root, '.gitignore'))]); } catch { return fail('LOCKFILE_INVALID'); }
+	let lock;
+	try { lock = parseStrictJson(lockText); } catch { return fail('LOCKFILE_INVALID'); }
 	if (lock.lockfileVersion !== toolchain.lockfileVersion || !lock.packages || typeof lock.packages !== 'object') return fail('LOCKFILE_INVALID');
 	if (!lock.packages[''] || !sameDependencySection(manifest, lock.packages[''], 'dependencies') || !sameDependencySection(manifest, lock.packages[''], 'devDependencies')) return fail('PACKAGE_LOCK_MISMATCH');
 	for (const name of toolchain.requiredLockedPackages) if (!lock.packages[`node_modules/${name}`] || typeof lock.packages[`node_modules/${name}`].version !== 'string' || !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(lock.packages[`node_modules/${name}`].version)) return fail('LOCKED_TOOL_INVALID');

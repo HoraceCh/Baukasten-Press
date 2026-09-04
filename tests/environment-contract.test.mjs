@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import path from 'node:path';
 
-import { canonicalEnvironmentGitArguments, parseStrictJson, repositoryRoot, runExactGit, validateAuthority, validateEnvironment, validateExample } from '../scripts/validate-environment.mjs';
+import { canonicalEnvironmentGitArguments, parseStrictJson, parseToolchainManifest, repositoryRoot, runExactGit, validateAuthority, validateEnvironment, validateExample, validatePackageMetadata } from '../scripts/validate-environment.mjs';
 import { validateOpenCodeConfigText } from '../scripts/validate-opencode-governance.mjs';
 
 const authorityText = await readFile(path.join(repositoryRoot, 'config', 'environment-contract.json'), 'utf8');
@@ -13,6 +13,7 @@ const example = parseStrictJson(exampleText);
 const packageText = await readFile(path.join(repositoryRoot, 'package.json'), 'utf8');
 const lockTextV2 = await readFile(path.join(repositoryRoot, 'package-lock.json'), 'utf8');
 const ignoreTextV2 = await readFile(path.join(repositoryRoot, '.gitignore'), 'utf8');
+const miseText = await readFile(path.join(repositoryRoot, 'mise.toml'), 'utf8');
 const opencodeTextV2 = await readFile(path.join(repositoryRoot, 'opencode.jsonc'), 'utf8');
 const sentinel = 'BAP41_SENTINEL_NEVER_ECHO';
 const windowsRoot = authority.environment.repository.root.windows;
@@ -20,13 +21,13 @@ const linuxRoot = authority.environment.repository.root.linux;
 
 function cloneV2(value) { return JSON.parse(JSON.stringify(value)); }
 function options(overrides = {}) {
-	const tracked = ['AGENTS.md', 'README.md', 'config/environment-contract.json'];
+	const tracked = ['AGENTS.md', 'README.md', 'config/environment-contract.json', 'mise.toml'];
 	const platform = overrides.platform ?? 'linux';
 	const selectedRoot = overrides.root ?? (platform === 'win32' ? windowsRoot : linuxRoot);
 	const run = overrides.run ?? (async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? selectedRoot : args.includes('ls-files') ? tracked.join('\n') : `https://github.com/${authority.environment.repository.slug}.git`);
 	return {
 		authorityText, configText: exampleText, root: selectedRoot, currentDirectory: selectedRoot, environment: {}, nodeVersion: authority.environment.toolchain.node, platform,
-		readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2 : lockTextV2,
+		readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('mise.toml') ? miseText : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2 : lockTextV2,
 		validateOpenCode: async ({ root, readText }) => validateOpenCodeConfigText(await readText(path.join(root, 'opencode.jsonc'))),
 		run, gitRun: overrides.gitRun ?? run,
 		...overrides,
@@ -36,7 +37,7 @@ function options(overrides = {}) {
 function ciOptions(overrides = {}) {
 	const root = '/home/runner/work/Baukasten-Press/Baukasten-Press';
 	const environment = { ...authority.environment.repository.ciRootPolicy.metadata, GITHUB_WORKSPACE: root };
-	const tracked = ['AGENTS.md', 'README.md', 'config/environment-contract.json', '.github/workflows/pr-validation.yml'];
+	const tracked = ['AGENTS.md', 'README.md', 'config/environment-contract.json', 'mise.toml', '.github/workflows/pr-validation.yml'];
 	return options({
 		root, currentDirectory: root, environment,
 		run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? root : args.includes('status') ? '' : args.includes('ls-files') ? tracked.join('\n') : `https://github.com/${authority.environment.repository.slug}.git`,
@@ -51,6 +52,28 @@ test('authority is sole source, and the example is the exact two-key local selec
 	assert.equal(example.environment, 'local');
 	assert.equal(await validateEnvironment(options()), null);
 	for (const profile of Object.values(authority.environment.profiles)) assert.equal(Object.values(profile.capabilities).every((value) => value === false), true);
+});
+
+test('the tracked resolver manifest and package metadata are exact toolchain guards', async () => {
+	assert.deepEqual(parseToolchainManifest(miseText), { node: authority.environment.toolchain.node, npm: authority.environment.toolchain.npm });
+	for (const valid of ['[tools]\nnode = "24.14.1"\nnpm = "11.19.1"', '[tools]\r\nnode = "24.14.1"\r\nnpm = "11.19.1"\r\n']) assert.deepEqual(parseToolchainManifest(valid), { node: '24.14.1', npm: '11.19.1' });
+	for (const invalid of ['[tools]\nnode = "24.14.1"\n', '[tools]\nnpm = "11.19.1"\n', '[tools]\nnode = "24.14.1"\nnpm = "11.19.1"\r', '[tools]\nnode = "24.14.1"\nnpm = "11.19.1"\n[tools]\nnode = "24.14.1"\nnpm = "11.19.1"\n', '[tools]\nnode = "24.14.1"\nnode = "24.14.1"\nnpm = "11.19.1"\n', '[tools]\nnode = "24.14.1"\nnpm = "11.19.1"\nnpm = "11.19.1"\n', '[tools]\nnode = "24.14.1"\nnpm = "11.19.1"\npython = "3.13"\n', '[other]\nnode = "24.14.1"\nnpm = "11.19.1"\n']) assert.throws(() => parseToolchainManifest(invalid));
+	assert.equal(validatePackageMetadata(parseStrictJson(packageText), authority.environment.toolchain), null);
+	for (const mutate of [
+		(value) => { delete value.packageManager; }, (value) => { value.packageManager = 'npm@0.0.0'; },
+		(value) => { delete value.devEngines.runtime; }, (value) => { delete value.devEngines.packageManager; }, (value) => { value.devEngines.runtime.version = '0.0.0'; },
+		(value) => { value.devEngines.packageManager.onFail = 'warn'; }, (value) => { value.devEngines.extra = {}; },
+	]) { const invalidMetadata = parseStrictJson(packageText); mutate(invalidMetadata); assert.equal(validatePackageMetadata(invalidMetadata, authority.environment.toolchain), 'PACKAGE_METADATA_INVALID'); }
+	const invalidManifestRead = async (file) => file.endsWith('package.json') ? packageText : file.endsWith('mise.toml') ? '[tools]\nnode = "24.14.1"\nnpm = "0.0.0"\n' : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2 : lockTextV2;
+	assert.equal(await validateEnvironment(options({ readText: invalidManifestRead })), 'TOOLCHAIN_MANIFEST_INVALID');
+	const invalidNodeManifestRead = async (file) => file.endsWith('package.json') ? packageText : file.endsWith('mise.toml') ? '[tools]\nnode = "0.0.0"\nnpm = "11.19.1"\n' : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2 : lockTextV2;
+	assert.equal(await validateEnvironment(options({ readText: invalidNodeManifestRead })), 'TOOLCHAIN_MANIFEST_INVALID');
+	assert.equal(await validateEnvironment(options({ nodeVersion: '0.0.0', readText: invalidManifestRead })), 'NODE_VERSION_INVALID');
+	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? '0.0.0' : args.includes('--show-toplevel') ? linuxRoot : args.includes('ls-files') ? 'AGENTS.md\nmise.toml' : `https://github.com/${authority.environment.repository.slug}.git`, readText: invalidManifestRead })), 'NPM_VERSION_INVALID');
+	const invalidPackageRead = async (file) => file.endsWith('package.json') ? packageText.replace('"npm@11.19.1"', '"npm@0.0.0"') : file.endsWith('mise.toml') ? miseText : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2 : lockTextV2;
+	assert.equal(await validateEnvironment(options({ readText: invalidPackageRead })), 'PACKAGE_METADATA_INVALID');
+	for (const mutate of [(value) => { value.environment.toolchain.resolver = 'other'; }, (value) => { value.environment.toolchain.resolverManifest = 'other.toml'; }]) { const invalidAuthority = cloneV2(authority); mutate(invalidAuthority); assert.equal(validateAuthority(invalidAuthority), 'CONFIG_SCHEMA_INVALID'); }
+	for (const ignoredPath of ['mise.local.toml', 'mise.local.lock']) assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('mise.toml') ? miseText : file.endsWith('.gitignore') ? ignoreTextV2.replace(ignoredPath, `not-${ignoredPath}`) : file.endsWith('opencode.jsonc') ? opencodeTextV2 : lockTextV2 })), 'IGNORE_POLICY_INVALID');
 });
 
 test('environment Git transport is exact, isolated, and unaffected by hostile Git metadata', async () => {
@@ -130,12 +153,12 @@ test('repository, lock, ignore, package mismatch, canaries, and override argumen
 	assert.equal(await validateEnvironment(options({ nodeVersion: '0.0.0' })), 'NODE_VERSION_INVALID');
 	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? '0.0.0' : args.includes('--show-toplevel') ? linuxRoot : args.includes('ls-files') ? 'AGENTS.md' : `https://github.com/${authority.environment.repository.slug}` })), 'NPM_VERSION_INVALID');
 	const mismatch = parseStrictJson(lockTextV2); mismatch.packages[''].devDependencies.esbuild = 'bad';
-	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : JSON.stringify(mismatch) })), 'PACKAGE_LOCK_MISMATCH');
+	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('mise.toml') ? miseText : file.endsWith('.gitignore') ? ignoreTextV2 : JSON.stringify(mismatch) })), 'PACKAGE_LOCK_MISMATCH');
 	const missingTool = parseStrictJson(lockTextV2); delete missingTool.packages['node_modules/esbuild'];
-	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : JSON.stringify(missingTool) })), 'LOCKED_TOOL_INVALID');
+	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('mise.toml') ? miseText : file.endsWith('.gitignore') ? ignoreTextV2 : JSON.stringify(missingTool) })), 'LOCKED_TOOL_INVALID');
 	const invalidTool = parseStrictJson(lockTextV2); invalidTool.packages['node_modules/esbuild'].version = 'not-a-version';
-	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : JSON.stringify(invalidTool) })), 'LOCKED_TOOL_INVALID');
-	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2.replace('data.json', 'not-data.json') : lockTextV2 })), 'IGNORE_POLICY_INVALID');
+	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('mise.toml') ? miseText : file.endsWith('.gitignore') ? ignoreTextV2 : JSON.stringify(invalidTool) })), 'LOCKED_TOOL_INVALID');
+	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('mise.toml') ? miseText : file.endsWith('.gitignore') ? ignoreTextV2.replace('data.json', 'not-data.json') : lockTextV2 })), 'IGNORE_POLICY_INVALID');
 	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? linuxRoot : args.includes('ls-files') ? 'rogue.tmp' : `https://github.com/${authority.environment.repository.slug}` })), 'PATH_POLICY_INVALID');
 	assert.equal(await validateEnvironment(options({ configText: sentinel })), 'CONFIG_INVALID');
 	assert.equal(await validateEnvironment(options({ run: async (command, args) => args.includes('ls-files') ? Promise.reject(new Error(sentinel)) : command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? linuxRoot : `https://github.com/${authority.environment.repository.slug}` })), 'COMMAND_FAILED');
@@ -172,7 +195,7 @@ test('the alternate GitHub pull-request root requires exact execution identity a
 });
 
 test('OpenCode provider and external capability drift fails under the environment contract', async () => {
-	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2.replace('"webfetch": {"*": "deny"}', '"webfetch": {"*": "allow"}') : lockTextV2 })), 'OPENCODE_GOVERNANCE_INVALID');
+	assert.equal(await validateEnvironment(options({ readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('mise.toml') ? miseText : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2.replace('"webfetch": {"*": "deny"}', '"webfetch": {"*": "allow"}') : lockTextV2 })), 'OPENCODE_GOVERNANCE_INVALID');
 });
 
 test('documentation and script retain canonical authority and no command override surface', async () => {

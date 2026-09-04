@@ -6,6 +6,8 @@
 # Dependencies
 node_modules/
 .npm-cache/
+mise.local.toml
+mise.local.lock
 
 # Build output
 main.js

@@ -15,7 +15,7 @@ const packageText = await readFile(path.join(repositoryRoot, 'package.json'), 'u
 const opencodeText = await readFile(path.join(repositoryRoot, 'opencode.jsonc'), 'utf8');
 const manifest = parseStrictJson(packageText);
 const exactNpmRun = async (command, argumentsList) => {
-	assert.equal(command, 'npm'); assert.deepEqual(argumentsList, ['--version']); return '11.14.1';
+	assert.equal(command, 'npm'); assert.deepEqual(argumentsList, ['--version']); return '11.19.1';
 };
 
 async function createDisposableGitFixture({ gitExecutor = executeFile } = {}) {
@@ -182,7 +182,7 @@ test('nested Git-safety environment validation accepts only the minimized exact 
 			if (command === 'npm') return environmentAuthority.environment.toolchain.npm;
 			if (args.includes('--show-toplevel')) return repositoryRoot;
 			if (args.includes('status')) return '';
-			if (args.includes('ls-files')) return (lsFilesCalls++ === 0 ? ['.github/workflows/pr-validation.yml'] : ['AGENTS.md', 'version-bump.mjs', '.github/workflows/pr-validation.yml']).join('\n');
+			if (args.includes('ls-files')) return (lsFilesCalls++ === 0 ? ['mise.toml', '.github/workflows/pr-validation.yml'] : ['AGENTS.md', 'mise.toml', 'version-bump.mjs', '.github/workflows/pr-validation.yml']).join('\n');
 			if (args.includes('remote.origin.url')) return `https://github.com/${environmentAuthority.environment.repository.slug}.git`;
 			const error = new Error('not configured'); error.code = 1; throw error;
 		};
