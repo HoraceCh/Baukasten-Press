@@ -19,7 +19,7 @@
 	},
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
-		"validate:agents": "node scripts/validate-agent-infrastructure.mjs && node --test tests/opencode-governance.test.mjs",
+		"validate:agents": "node scripts/validate-agent-infrastructure.mjs && node --test tests/opencode-governance.test.mjs tests/codex-workflow.test.mjs",
 		"validate:git-safety": "node scripts/validate-git-safety.mjs && node --test tests/git-safety-contract.test.mjs",
 		"validate:environment": "node scripts/validate-environment.mjs --config config/environment.example.json",
 		"test:contracts": "node scripts/run-contract-tests.mjs",

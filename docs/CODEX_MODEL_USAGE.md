@@ -21,4 +21,10 @@ These model pins govern project-local Codex ownership work only. They do not sel
 - Do not impose universal temperatures, fixed evaluation counts, or fixed pass scores. Future product-model evaluation requires an approved, representative evaluation contract.
 - A model or service failure must surface an explicit safe workflow state. It must not produce a degraded publishable artifact merely to return content.
 
+## Evaluated tuple policy
+
+The workflow contract makes automatic selection deliberately small: `gpt-5.6-terra/medium` is the implementation tuple and `gpt-5.6-sol/high` is the review and architecture tuple. `gpt-5.6-luna/low` and `gpt-5.6-sol/medium` are candidates; every remaining host-supported tuple is evaluation-only. A candidate is not promoted by prompt text, a Rule, or a task signal. It needs a governed evaluation record and an explicit contract change.
+
+The router uses resources as declared capability inputs, including repository contracts, a deterministic Node validator, `rtk-readonly`, optional CodeGraph with an `rtk-readonly` fallback, the exact governed skill IDs, and model-tuple availability. It records compact decision codes only; it never records private reasoning, raw chat, credentials, provider output, or tool output.
+
 The file schema follows Codex project-scoped custom-agent configuration: named roles in `.codex/config.toml` reference standalone files under `.codex/agents/`, and each file pins its own `model`, `model_reasoning_effort`, and `sandbox_mode`.

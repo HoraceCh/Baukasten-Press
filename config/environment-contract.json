@@ -2,7 +2,7 @@
   "contractVersion": "1.0",
   "configSchema": {"required": ["contractVersion", "environment"], "optional": [], "defaults": {}, "environmentVariables": [], "secrets": []},
   "requiredConfigKeys": {
-    "environment": ["repository", "toolchain", "paths", "optional", "default", "envVariables", "secrets", "profileNames", "profiles"],
+    "environment": ["repository", "toolchain", "paths", "ruleAdmission", "optional", "default", "envVariables", "secrets", "profileNames", "profiles"],
     "repository": ["root", "slug", "ciRootPolicy"],
     "toolchain": ["node", "npm", "packageManager", "resolver", "resolverManifest", "lockfile", "lockfileVersion", "requiredLockedPackages"],
     "paths": ["tracked", "ignoredRuntime"],
@@ -30,7 +30,8 @@
       }
     },
     "toolchain": {"node": "24.14.1", "npm": "11.19.1", "packageManager": "npm", "resolver": "mise", "resolverManifest": "mise.toml", "lockfile": "package-lock.json", "lockfileVersion": 3, "requiredLockedPackages": ["esbuild", "typescript", "eslint"]},
-    "paths": {"tracked": [".agents/", ".codex/", ".editorconfig", ".github/workflows/pr-validation.yml", ".gitignore", ".npmrc", ".opencode/", ".serena/", "AGENTS.md", "README.md", "config/", "docs/", "mise.toml", "opencode.jsonc", "scripts/", "src/", "tests/", "manifest.json", "package.json", "package-lock.json", "tsconfig.json", "eslint.config.mts", "esbuild.config.mjs", "styles.css", "versions.json", "version-bump.mjs"], "ignoredRuntime": ["data.json", "node_modules/", ".npm-cache/", "main.js", "*.map", "mise.local.toml", "mise.local.lock"]},
+    "paths": {"tracked": [".agents/", ".codex/", ".editorconfig", ".github/workflows/pr-validation.yml", ".gitignore", ".npmrc", ".omo/rules/agent-governance.md", ".opencode/", ".serena/", "AGENTS.md", "README.md", "config/", "docs/", "mise.toml", "opencode.jsonc", "scripts/", "src/", "tests/", "manifest.json", "package.json", "package-lock.json", "tsconfig.json", "eslint.config.mts", "esbuild.config.mjs", "styles.css", "versions.json", "version-bump.mjs"], "ignoredRuntime": ["data.json", "node_modules/", ".npm-cache/", "main.js", "*.map", "mise.local.toml", "mise.local.lock"]},
+    "ruleAdmission": {"trackedRule": ".omo/rules/agent-governance.md"},
     "optional": {}, "default": {}, "envVariables": {}, "secrets": {}, "profileNames": ["local", "test", "production-like"],
     "profiles": {
       "local": {"responsibility": "local development without external authority", "capabilities": {"providerAccess": false, "publicationAccess": false, "credentialAccess": false, "credentialStorage": false, "networkAccess": false, "vaultAccess": false, "vaultWrites": false, "externalProductionWrites": false}},

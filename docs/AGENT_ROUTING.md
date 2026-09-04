@@ -6,6 +6,12 @@ Baukasten Press has five project-local Codex owners. Every task has exactly one 
 
 Agent registration is task routing, not product authority. It does not create a provider call, credential store, Agent execution runtime, publication destination, vault permission, or publication permission. Repository and domain contracts remain authoritative.
 
+## Evaluated capability routing
+
+`config/codex-workflow-contract.json` closes the task-context entry point before routing. A validated signal selects one of three capability tiers: worker (bounded analysis), engineering-synthesizer (approved workspace implementation), or judge (contracts and final review). The router cannot grant Git, external-write, vault, publication, provider, or credential authority.
+
+Only `gpt-5.6-terra/medium` and `gpt-5.6-sol/high` are automatic tuples. Candidate and evaluation-only tuples require a governed evaluation promotion; unavailable resources, unattested runtime capability, unknown context, and ambiguity return explicit safe states. Phase 1 keeps `.omo/rules/agent-governance.md` absent; dynamic Rules may only append a matched Rule identifier after their separately validated admission.
+
 ## Routes
 
 | Task shape | Required serial route |

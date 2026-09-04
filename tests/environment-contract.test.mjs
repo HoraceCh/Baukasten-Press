@@ -21,7 +21,7 @@ const linuxRoot = authority.environment.repository.root.linux;
 
 function cloneV2(value) { return JSON.parse(JSON.stringify(value)); }
 function options(overrides = {}) {
-	const tracked = ['AGENTS.md', 'README.md', 'config/environment-contract.json', 'mise.toml'];
+	const tracked = ['.omo/rules/agent-governance.md', 'AGENTS.md', 'README.md', 'config/environment-contract.json', 'mise.toml'];
 	const platform = overrides.platform ?? 'linux';
 	const selectedRoot = overrides.root ?? (platform === 'win32' ? windowsRoot : linuxRoot);
 	const run = overrides.run ?? (async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? selectedRoot : args.includes('ls-files') ? tracked.join('\n') : `https://github.com/${authority.environment.repository.slug}.git`);
@@ -29,7 +29,7 @@ function options(overrides = {}) {
 		authorityText, configText: exampleText, root: selectedRoot, currentDirectory: selectedRoot, environment: {}, nodeVersion: authority.environment.toolchain.node, platform,
 		readText: async (file) => file.endsWith('package.json') ? packageText : file.endsWith('mise.toml') ? miseText : file.endsWith('.gitignore') ? ignoreTextV2 : file.endsWith('opencode.jsonc') ? opencodeTextV2 : lockTextV2,
 		validateOpenCode: async ({ root, readText }) => validateOpenCodeConfigText(await readText(path.join(root, 'opencode.jsonc'))),
-		run, gitRun: overrides.gitRun ?? run,
+		readDirectory: async () => ['agent-governance.md'], run, gitRun: overrides.gitRun ?? run,
 		...overrides,
 	};
 }
@@ -140,6 +140,17 @@ test('authority and selector reject schema drift, escaped/duplicate keys, profil
 			assert.equal(validateAuthority(mutation), 'CONFIG_SCHEMA_INVALID');
 		}
 	}
+});
+
+test('Rule admission accepts only the exact tracked Rule and one filesystem entry', async () => {
+	const broadDirectory = cloneV2(authority);
+	broadDirectory.environment.paths.tracked = broadDirectory.environment.paths.tracked.map((entry) => entry === '.omo/rules/agent-governance.md' ? '.omo/rules/' : entry);
+	assert.equal(validateAuthority(broadDirectory), 'CONFIG_SCHEMA_INVALID');
+	const broadRoot = cloneV2(authority);
+	broadRoot.environment.paths.tracked = broadRoot.environment.paths.tracked.map((entry) => entry === '.omo/rules/agent-governance.md' ? '.omo/' : entry);
+	assert.equal(validateAuthority(broadRoot), 'CONFIG_SCHEMA_INVALID');
+	assert.equal(await validateEnvironment(options({ readDirectory: async () => ['agent-governance.md', 'rogue.md'] })), 'RULE_ADMISSION_INVALID');
+	assert.equal(await validateEnvironment(options({ run: async (command, args) => command === 'npm' ? authority.environment.toolchain.npm : args.includes('--show-toplevel') ? linuxRoot : args.includes('ls-files') ? '.omo/rules/agent-governance.md\n.omo/rules/rogue.md' : `https://github.com/${authority.environment.repository.slug}.git` })), 'PATH_POLICY_INVALID');
 });
 
 test('repository, lock, ignore, package mismatch, canaries, and override arguments fail closed without leaks', async () => {
